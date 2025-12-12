@@ -9,7 +9,6 @@ pub mod constants;
 pub mod solver;
 
 use crate::constants::window_config;
-use crate::solver::Solver;
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -20,13 +19,12 @@ async fn main()
     let mut timer = Instant::now();
     let time_stop = Duration::from_millis(10);
 
-    let mut solver = Solver::new(1378, 100); // Bottom-left to Top-right
-
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
 
-        maze.draw(&mut timer, &time_stop, &mut solver);
+        maze.update(&mut timer, &time_stop);
+        maze.draw();
 
         next_frame().await
     }

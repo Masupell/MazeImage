@@ -7,6 +7,7 @@ use crate::{constants::*, solver::Solver};
 pub struct Maze
 {
     pub grid: Vec<bool>,
+    pub solver: Solver,
     pub start: usize,
     pub end: usize,
     pub started: bool
@@ -76,23 +77,23 @@ impl Maze
         Maze
         {
             grid,
+            solver: Solver::new(1378, 100),
             start: 1378,
             end: 100,
             started: false
         }
     }
 
-    pub fn input(&mut self)
+    pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration)
     {
-
+        self.handle_input();
+        self.update_solver(timer, time_stop);
     }
 
-    pub fn draw(&mut self, timer: &mut Instant, time_stop: &Duration, solver: &mut Solver)
+    pub fn draw(&self)
     {
         self.draw_maze();
-        self.handle_input(solver);
-        self.update_solver(timer, time_stop, solver);
-        self.draw_solver(solver);
+        self.draw_solver();
         self.draw_ends();
     }
 
@@ -110,7 +111,7 @@ impl Maze
         }
     }
 
-    fn handle_input(&mut self, solver: &mut Solver)
+    fn handle_input(&mut self)
     {
         if is_mouse_button_released(MouseButton::Left) // Start
         {
@@ -134,38 +135,38 @@ impl Maze
 
         if is_key_released(KeyCode::Enter)
         {
-            solver.redo(self.start, self.end);
+            self.solver.redo(self.start, self.end);
         }
 
         if is_key_released(KeyCode::Space) { self.started = !self.started; }
     }
 
-    fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration, solver: &mut Solver)
+    fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration)
     {
         if timer.elapsed() >= *time_stop && self.started
         {
-            if !solver.found
+            if !self.solver.found
             {
-                solver.step(&self.grid);
+                self.solver.step(&self.grid);
             }
             else 
             {
-                solver.reconstruction_step();
+                self.solver.reconstruction_step();
             }
             
             *timer = Instant::now();
         }
     }
 
-    fn draw_solver(&self, solver: &Solver)
+    fn draw_solver(&self)
     {
         let cell_size = CELL_SIZE as f32;
         
-        if !solver.finished
+        if !self.solver.finished
         {
             for i in 0..self.grid.len()
             {
-                if solver.visited[i]
+                if self.solver.visited[i]
                 {
                     let x = (i % GRID_WIDTH) as f32 * cell_size;
                     let y = (i / GRID_WIDTH) as f32 * cell_size;
@@ -174,7 +175,7 @@ impl Maze
             }
         }
 
-        for i in solver.final_path.iter()
+        for i in self.solver.final_path.iter()
         {
             let x = (i % GRID_WIDTH) as f32 * cell_size;
             let y = (i / GRID_WIDTH) as f32 * cell_size;
