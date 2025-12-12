@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
@@ -81,6 +81,13 @@ async fn main()
         walls.remove(idx);
     }
 
+    let mut timer = Instant::now();
+    let time_stop = Duration::from_millis(10);
+
+    let mut started = false;
+
+    let mut solver = Solver::new(1378, 100); // Bottom-left to Top-right
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
@@ -105,6 +112,46 @@ async fn main()
             let i = y*GRID_WIDTH+x;
             println!("X: {}, Y: {}\nIdx: {}", x, y, i);
         }
+
+        if is_key_released(KeyCode::Space) { started = !started; }
+
+        if timer.elapsed() >= time_stop && started
+        {
+            if !solver.found
+            {
+                solver.step(&grid);
+            }
+            else 
+            {
+                solver.reconstruction_step();
+            }
+            
+            timer = Instant::now();
+        }
+
+        if !solver.finished
+        {
+            for i in 0..grid.len()
+            {
+                if solver.visited[i]
+                {
+                    let cell_size_f = CELL_SIZE as f32;
+                    let x = (i % GRID_WIDTH) as f32 * cell_size_f;
+                    let y = (i / GRID_WIDTH) as f32 * cell_size_f;
+                    draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.8, 0.4, 1.0));
+                }
+            }
+        }
+
+        for i in solver.final_path.iter()
+        {
+            let cell_size_f = CELL_SIZE as f32;
+            let x = (i % GRID_WIDTH) as f32 * cell_size_f;
+            let y = (i / GRID_WIDTH) as f32 * cell_size_f;
+            draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.4, 0.8, 1.0));
+        }
+
+        draw_rectangle((49*CELL_SIZE) as f32, (1*CELL_SIZE) as f32, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
 
         // draw_line(0.0, 0.0, (grid_width*cell_size) as f32, 0.0, 5.0, RED);
         // draw_line((grid_width*cell_size) as f32, 0.0, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
@@ -140,6 +187,7 @@ pub struct Solver // Quite inefficient
     pub visited: Vec<bool>,
     pub path: Vec<Option<usize>>,
     pub path_pos: usize,
+    pub final_path: Vec<usize>,
     pub found: bool,
     pub finished: bool
 }
@@ -162,6 +210,7 @@ impl Solver
             visited,
             path: vec![None; GRID_SIZE],
             path_pos: end,
+            final_path: Vec::new(),
             found: false,
             finished: false
         }
@@ -169,7 +218,7 @@ impl Solver
 
     pub fn step(&mut self, grid: &Vec<bool>)
     {
-        if self.found { return; }
+        // if self.found { return; }
 
         let cell_option = self.queue.pop_front();
         if cell_option.is_none() { println!("Error?"); return; }
@@ -196,6 +245,7 @@ impl Solver
         if let Some(new_pos) = self.path[self.path_pos]
         {
             self.path_pos = new_pos;
+            self.final_path.push(self.path_pos);
         }
         else { self.finished = true; }
     }
