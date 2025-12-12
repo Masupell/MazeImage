@@ -1,3 +1,5 @@
+use std::cell;
+
 use macroquad::{prelude::*, rand::gen_range};
 
 fn window_config() -> Conf
@@ -14,42 +16,72 @@ fn window_config() -> Conf
 #[macroquad::main(window_config)]
 async fn main() 
 {
-    let cells_x = 75;
-    let cell_size = 1280.0 / cells_x as f32;
-    let cells_y = (720.0 / cell_size) as usize;
-    let max = cells_x*cells_y;
+    let cells_x = 25;
+    let grid_width = 2*cells_x+1;
+    let cell_size = 1280/grid_width;
+    let grid_height = 720/cell_size;
 
-    let mut grid = vec![false; max];
+    println!("GridWidth: {}, GridHeight: {}", grid_width, grid_height);
+    println!("CellSize: {}", cell_size);
 
-    let start = 0;
+    let grid_size = grid_width*grid_height;
 
+    let mut grid = vec![false; grid_size];
+
+    let start = grid_width+1;
     grid[start] = true;
-    let mut frontier = sides(start, cells_x, max);
+    let mut walls = sides(start, grid_width, grid_size);
 
-    while !frontier.is_empty()
+    while !walls.is_empty()
     {
-        let idx = gen_range(0, frontier.len());
-        let cell = frontier[idx];
+        let idx = gen_range(0, walls.len());
+        let cell = walls[idx];
 
-        let neighbours = sides(cell, cells_x, max);
+        let x = cell % grid_width;
+        let y = cell / grid_width;
 
-        let (visited, unvisited): (Vec<usize>, Vec<usize>) = neighbours.iter().partition(|&n| grid[*n]);
+        let cell_one_idx;
+        let cell_two_idx;
+        let cell_one;
+        let cell_two;
 
-        if visited.len() == 1
+        if y % 2 == 1 && x % 2 == 0 // y is odd, x is even, means cells are to the left and right
         {
+            if x == 0 || x+1 >= grid_width { walls.remove(idx); continue; }
+            cell_one_idx = y * grid_width + x-1;
+            cell_two_idx = y * grid_width + x+1;
+            cell_one = grid[cell_one_idx];
+            cell_two = grid[cell_two_idx];
+        }
+        else if y % 2 == 0 && x % 2 == 1 // y is even, x is odd, means cells are up and down
+        {
+            if y == 0 || y+1 >= grid_height { walls.remove(idx); continue; }
+            cell_one_idx = (y-1) * grid_width + x;
+            cell_two_idx = (y+1) * grid_width + x;
+            cell_one = grid[cell_one_idx];
+            cell_two = grid[cell_two_idx];
+        }
+        else { walls.remove(idx); continue; }
+
+        if cell_one != cell_two // If only one is true (visited)
+        {
+            let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
+            
             grid[cell] = true;
-            for n in unvisited 
+            grid[unvisited] = true;
+
+            let new_neighbours = sides(unvisited, grid_width, grid_size);
+            for n in new_neighbours
             {
-                if !frontier.contains(&n) 
+                if !walls.contains(&n)
                 {
-                    frontier.push(n);
+                    walls.push(n);
                 }
             }
-            // frontier.append(&mut unvisited);
         }
-        frontier.swap_remove(idx);
+        walls.remove(idx);
     }
-    
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
@@ -59,17 +91,22 @@ async fn main()
         {
             if !draw { continue; }
 
-            let x = (i % cells_x) as f32 * cell_size;
-            let y = (i / cells_x) as f32 * cell_size;
-            draw_rectangle(x, y, cell_size, cell_size, WHITE);
+            let cell_size_f = cell_size as f32;
+            let x = (i % grid_width) as f32 * cell_size_f;
+            let y = (i / grid_width) as f32 * cell_size_f;
+            draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.8, 0.8, 0.8, 1.0));
         }
 
+        // draw_line(0.0, 0.0, (grid_width*cell_size) as f32, 0.0, 5.0, RED);
+        // draw_line((grid_width*cell_size) as f32, 0.0, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
+        // draw_line(0.0, 0.0, 0.0, (grid_height*cell_size) as f32, 5.0, RED);
+        // draw_line(0.0, (grid_height*cell_size) as f32, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
 
         next_frame().await
     }
 }
 
-fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
+fn sides(pos: usize, width: usize, max: usize) -> Vec<usize> // Unnessesarily returns non-walls as well, but works for now
 {
     let mut neighbours = Vec::new();
 
