@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
+use macroquad::rand::srand;
 
 pub mod image;
 pub mod maze;
@@ -13,6 +14,7 @@ use crate::solver::Solver;
 #[macroquad::main(window_config)]
 async fn main() 
 {
+    srand(miniquad::date::now() as u64);
     let mut maze = maze::Maze::new();
 
     let mut timer = Instant::now();

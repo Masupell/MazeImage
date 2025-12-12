@@ -19,7 +19,7 @@ impl Maze
     {
         let mut grid = vec![false; GRID_SIZE];
     
-        let start = GRID_WIDTH+1;
+        let start = random_start(); //GRID_WIDTH+1;
         grid[start] = true;
         let mut walls = sides(start, GRID_WIDTH, GRID_SIZE);
     
@@ -190,4 +190,12 @@ fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
     if y < max_y-1 && (x%2==1) { neighbours.push(pos + width); }
 
     neighbours
+}
+
+fn random_start() -> usize
+{
+    let x = gen_range(0, GRID_WIDTH/2) * 2+1;
+    let y = gen_range(0, GRID_HEIGHT/2) * 2+1;
+
+    y * GRID_WIDTH + x
 }
