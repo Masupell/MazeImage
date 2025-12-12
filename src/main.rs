@@ -88,29 +88,47 @@ async fn main()
 
     let mut solver = Solver::new(1378, 100); // Bottom-left to Top-right
 
+    let mut start = 1378;
+    let mut end = 100;
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
 
+        let cell_size_f = CELL_SIZE as f32;
 
         for (i, draw) in grid.iter().enumerate()
         {
             if !draw { continue; }
 
-            let cell_size_f = CELL_SIZE as f32;
             let x = (i % GRID_WIDTH) as f32 * cell_size_f;
             let y = (i / GRID_WIDTH) as f32 * cell_size_f;
             draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.8, 0.8, 0.8, 1.0));
         }
 
-        if is_mouse_button_released(MouseButton::Left)
+        if is_mouse_button_released(MouseButton::Left) // Start
         {
             let pos = mouse_position();
 
             let x = (pos.0/CELL_SIZE as f32) as usize;
             let y = (pos.1/CELL_SIZE as f32) as usize;
             let i = y*GRID_WIDTH+x;
-            println!("X: {}, Y: {}\nIdx: {}", x, y, i);
+            start = i;
+        }
+
+        if is_mouse_button_released(MouseButton::Right) // End
+        {
+            let pos = mouse_position();
+
+            let x = (pos.0/CELL_SIZE as f32) as usize;
+            let y = (pos.1/CELL_SIZE as f32) as usize;
+            let i = y*GRID_WIDTH+x;
+            end = i;
+        }
+
+        if is_key_released(KeyCode::Enter)
+        {
+            solver.redo(start, end);
         }
 
         if is_key_released(KeyCode::Space) { started = !started; }
@@ -135,7 +153,6 @@ async fn main()
             {
                 if solver.visited[i]
                 {
-                    let cell_size_f = CELL_SIZE as f32;
                     let x = (i % GRID_WIDTH) as f32 * cell_size_f;
                     let y = (i / GRID_WIDTH) as f32 * cell_size_f;
                     draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.8, 0.4, 1.0));
@@ -145,13 +162,18 @@ async fn main()
 
         for i in solver.final_path.iter()
         {
-            let cell_size_f = CELL_SIZE as f32;
             let x = (i % GRID_WIDTH) as f32 * cell_size_f;
             let y = (i / GRID_WIDTH) as f32 * cell_size_f;
             draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.4, 0.8, 1.0));
         }
 
-        draw_rectangle((49*CELL_SIZE) as f32, (1*CELL_SIZE) as f32, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
+        let start_x = (start % GRID_WIDTH) as f32 * cell_size_f;
+        let start_y = (start / GRID_WIDTH) as f32 * cell_size_f;
+        draw_rectangle(start_x, start_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.8, 0.4, 1.0));
+
+        let end_x = (end % GRID_WIDTH) as f32 * cell_size_f;
+        let end_y = (end / GRID_WIDTH) as f32 * cell_size_f;
+        draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
 
         // draw_line(0.0, 0.0, (grid_width*cell_size) as f32, 0.0, 5.0, RED);
         // draw_line((grid_width*cell_size) as f32, 0.0, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
@@ -248,6 +270,21 @@ impl Solver
             self.final_path.push(self.path_pos);
         }
         else { self.finished = true; }
+    }
+
+    pub fn redo(&mut self, start: usize, end: usize)
+    {
+        self.queue.clear(); // Cleared before, but to be sure
+        self.queue.push_back(start);
+        self.visited.fill(false);
+        self.visited[start] = true;
+        self.start = start;
+        self.end = end;
+        self.path_pos = end;
+        self.path.fill(None);
+        self.final_path.clear();
+        self.found = false;
+        self.finished = false;
     }
 }
 
