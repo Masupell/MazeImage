@@ -2,6 +2,8 @@ use std::{collections::VecDeque, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
+pub mod image;
+
 const CELLS_X: usize = 25;
 const GRID_WIDTH: usize = 2*CELLS_X+1;
 const CELL_SIZE: usize = 1280/GRID_WIDTH;
