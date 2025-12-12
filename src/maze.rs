@@ -89,17 +89,29 @@ impl Maze
 
     pub fn draw(&mut self, timer: &mut Instant, time_stop: &Duration, solver: &mut Solver)
     {
-        let cell_size_f = CELL_SIZE as f32;
+        self.draw_maze();
+        self.handle_input(solver);
+        self.update_solver(timer, time_stop, solver);
+        self.draw_solver(solver);
+        self.draw_ends();
+    }
+
+    fn draw_maze(&self)
+    {
+        let cell_size = CELL_SIZE as f32;
 
         for (i, draw) in self.grid.iter().enumerate()
         {
             if !draw { continue; }
 
-            let x = (i % GRID_WIDTH) as f32 * cell_size_f;
-            let y = (i / GRID_WIDTH) as f32 * cell_size_f;
-            draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.8, 0.8, 0.8, 1.0));
+            let x = (i % GRID_WIDTH) as f32 * cell_size;
+            let y = (i / GRID_WIDTH) as f32 * cell_size;
+            draw_rectangle(x, y, cell_size, cell_size, Color::new(0.8, 0.8, 0.8, 1.0));
         }
+    }
 
+    fn handle_input(&mut self, solver: &mut Solver)
+    {
         if is_mouse_button_released(MouseButton::Left) // Start
         {
             let pos = mouse_position();
@@ -126,7 +138,10 @@ impl Maze
         }
 
         if is_key_released(KeyCode::Space) { self.started = !self.started; }
+    }
 
+    fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration, solver: &mut Solver)
+    {
         if timer.elapsed() >= *time_stop && self.started
         {
             if !solver.found
@@ -140,39 +155,44 @@ impl Maze
             
             *timer = Instant::now();
         }
+    }
 
+    fn draw_solver(&self, solver: &Solver)
+    {
+        let cell_size = CELL_SIZE as f32;
+        
         if !solver.finished
         {
             for i in 0..self.grid.len()
             {
                 if solver.visited[i]
                 {
-                    let x = (i % GRID_WIDTH) as f32 * cell_size_f;
-                    let y = (i / GRID_WIDTH) as f32 * cell_size_f;
-                    draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.8, 0.4, 1.0));
+                    let x = (i % GRID_WIDTH) as f32 * cell_size;
+                    let y = (i / GRID_WIDTH) as f32 * cell_size;
+                    draw_rectangle(x, y, cell_size, cell_size, Color::new(0.4, 0.8, 0.4, 1.0));
                 }
             }
         }
 
         for i in solver.final_path.iter()
         {
-            let x = (i % GRID_WIDTH) as f32 * cell_size_f;
-            let y = (i / GRID_WIDTH) as f32 * cell_size_f;
-            draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.4, 0.4, 0.8, 1.0));
+            let x = (i % GRID_WIDTH) as f32 * cell_size;
+            let y = (i / GRID_WIDTH) as f32 * cell_size;
+            draw_rectangle(x, y, cell_size, cell_size, Color::new(0.4, 0.4, 0.8, 1.0));
         }
+    }
 
-        let start_x = (self.start % GRID_WIDTH) as f32 * cell_size_f;
-        let start_y = (self.start / GRID_WIDTH) as f32 * cell_size_f;
+    fn draw_ends(&self)
+    {
+        let cell_size = CELL_SIZE as f32;
+
+        let start_x = (self.start % GRID_WIDTH) as f32 * cell_size;
+        let start_y = (self.start / GRID_WIDTH) as f32 * cell_size;
         draw_rectangle(start_x, start_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.8, 0.4, 1.0));
 
-        let end_x = (self.end % GRID_WIDTH) as f32 * cell_size_f;
-        let end_y = (self.end / GRID_WIDTH) as f32 * cell_size_f;
+        let end_x = (self.end % GRID_WIDTH) as f32 * cell_size;
+        let end_y = (self.end / GRID_WIDTH) as f32 * cell_size;
         draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
-
-        // draw_line(0.0, 0.0, (grid_width*cell_size) as f32, 0.0, 5.0, RED);
-        // draw_line((grid_width*cell_size) as f32, 0.0, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
-        // draw_line(0.0, 0.0, 0.0, (grid_height*cell_size) as f32, 5.0, RED);
-        // draw_line(0.0, (grid_height*cell_size) as f32, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
     }
 }
 
