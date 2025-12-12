@@ -2,21 +2,13 @@ use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
-use crate::maze::*;
-
 pub mod image;
 pub mod maze;
+pub mod constants;
+pub mod solver;
 
-fn window_config() -> Conf
-{
-    Conf
-    {
-        window_title: "Maze Image".to_owned(),
-        window_width: 1280,
-        window_height: 720,
-        ..Default::default()
-    }
-}
+use crate::constants::window_config;
+use crate::solver::Solver;
 
 #[macroquad::main(window_config)]
 async fn main() 
