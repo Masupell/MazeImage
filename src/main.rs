@@ -1,5 +1,3 @@
-use std::cell;
-
 use macroquad::{prelude::*, rand::gen_range};
 
 fn window_config() -> Conf
@@ -116,7 +114,7 @@ async fn main()
     }
 }
 
-fn sides(pos: usize, width: usize, max: usize) -> Vec<usize> // Unnessesarily returns non-walls as well, but works for now
+fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
 {
     let mut neighbours = Vec::new();
 
@@ -124,10 +122,10 @@ fn sides(pos: usize, width: usize, max: usize) -> Vec<usize> // Unnessesarily re
     let y = pos / width;
     let max_y = max / width;
 
-    if x > 0 { neighbours.push(pos - 1); }
-    if x < width - 1 { neighbours.push(pos + 1); }
-    if y > 0 { neighbours.push(pos - width); }
-    if y < max_y-1 { neighbours.push(pos + width); }
+    if x > 0 && (y%2==1) { neighbours.push(pos - 1); }
+    if x < width - 1 && (y%2==1) { neighbours.push(pos + 1); }
+    if y > 0 && (x%2==1){ neighbours.push(pos - width); }
+    if y < max_y-1 && (x%2==1) { neighbours.push(pos + width); }
 
     neighbours
 }
