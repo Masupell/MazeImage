@@ -97,6 +97,16 @@ async fn main()
             draw_rectangle(x, y, cell_size_f, cell_size_f, Color::new(0.8, 0.8, 0.8, 1.0));
         }
 
+        if is_mouse_button_released(MouseButton::Left)
+        {
+            let pos = mouse_position();
+
+            let x = (pos.0/cell_size as f32) as usize;
+            let y = (pos.1/cell_size as f32) as usize;
+            let i = y*grid_width+x;
+            println!("X: {}, Y: {}\nIdx: {}", x, y, i);
+        }
+
         // draw_line(0.0, 0.0, (grid_width*cell_size) as f32, 0.0, 5.0, RED);
         // draw_line((grid_width*cell_size) as f32, 0.0, (grid_width*cell_size) as f32, (grid_height*cell_size) as f32, 5.0, RED);
         // draw_line(0.0, 0.0, 0.0, (grid_height*cell_size) as f32, 5.0, RED);
