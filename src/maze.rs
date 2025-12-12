@@ -121,6 +121,7 @@ impl Maze
             let y = (pos.1/CELL_SIZE as f32) as usize;
             let i = y*GRID_WIDTH+x;
             self.start = i;
+            self.solver.redo(self.start, self.end);
         }
 
         if is_mouse_button_released(MouseButton::Right) // End
@@ -131,6 +132,18 @@ impl Maze
             let y = (pos.1/CELL_SIZE as f32) as usize;
             let i = y*GRID_WIDTH+x;
             self.end = i;
+            self.solver.redo(self.start, self.end);
+        }
+
+        if is_mouse_button_released(MouseButton::Middle)
+        {
+            let pos = mouse_position();
+            
+            let x = (pos.0/CELL_SIZE as f32) as usize;
+            let y = (pos.1/CELL_SIZE as f32) as usize;
+            let i = y*GRID_WIDTH+x;
+
+            self.grid[i] = !self.grid[i];
         }
 
         if is_key_released(KeyCode::Enter)

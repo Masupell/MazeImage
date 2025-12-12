@@ -43,7 +43,7 @@ impl Solver
         // if self.found { return; }
 
         let cell_option = self.queue.pop_front();
-        if cell_option.is_none() { println!("Error?"); return; }
+        if cell_option.is_none() { self.found = true; self.finished = true; println!("Error?"); return; }
         let cell = cell_option.unwrap();
 
         let neighbours = solver_sides(cell, GRID_WIDTH, GRID_HEIGHT, grid);//sides(cell, GRID_WIDTH, GRID_SIZE);
