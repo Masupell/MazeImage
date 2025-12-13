@@ -6,6 +6,8 @@ pub const CELL_SIZE: usize = 1280/GRID_WIDTH;
 pub const GRID_HEIGHT: usize = 720/CELL_SIZE;
 pub const GRID_SIZE: usize = GRID_WIDTH*GRID_HEIGHT;
 
+pub static mut BLOCK_INPUT: bool = false; // Not best way, but sufficient for now
+
 pub fn window_config() -> Conf 
 {
     Conf

@@ -86,7 +86,8 @@ impl Maze
 
     pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration)
     {
-        self.handle_input();
+        
+        unsafe { if !BLOCK_INPUT { self.handle_input(); } }
         self.update_solver(timer, time_stop);
     }
 

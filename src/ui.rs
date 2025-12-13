@@ -16,13 +16,14 @@ impl UI
         }
     }
 
-    pub fn draw(&self)
+    pub fn draw(&self) -> bool
     {
-        egui_macroquad::ui(|egui_ctx| {
-            egui::Window::new("egui ❤ macroquad")
-                .show(egui_ctx, |ui| {
-                    ui.label("Test");
-                });
+        let mut block_input = false;
+
+        egui_macroquad::ui(|egui_ctx| 
+        {
+            block_input = egui_ctx.wants_pointer_input() || egui_ctx.is_pointer_over_area();
+
             egui::Window::new("Hello?").anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, 0.0))
             .show(egui_ctx, |ui|
             {
@@ -35,8 +36,8 @@ impl UI
             });
         });
         
-        
-
         egui_macroquad::draw();
+
+        block_input
     }
 }

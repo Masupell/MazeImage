@@ -10,6 +10,7 @@ pub mod solver;
 pub mod ui;
 
 use crate::constants::window_config;
+use crate::constants::BLOCK_INPUT;
 use crate::ui::UI;
 
 #[macroquad::main(window_config)]
@@ -30,7 +31,7 @@ async fn main()
         maze.update(&mut timer, &time_stop);
         maze.draw();
 
-        ui.draw();
+        unsafe { BLOCK_INPUT = ui.draw(); }
 
         next_frame().await
     }
