@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 macroquad = "0.4.14"
+egui-macroquad = "0.17.3"
 image = "0.24.7"
 image_manipulation = { git = "https://github.com/Masupell/image_manipulation.git" }
 pollster = "0.3"
