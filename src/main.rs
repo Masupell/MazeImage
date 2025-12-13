@@ -10,7 +10,6 @@ pub mod solver;
 pub mod ui;
 
 use crate::constants::window_config;
-use crate::constants::BLOCK_INPUT;
 use crate::ui::UI;
 
 #[macroquad::main(window_config)]
@@ -24,14 +23,16 @@ async fn main()
 
     let ui = UI::new();
 
+    let mut block_input: bool = false;
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
 
-        maze.update(&mut timer, &time_stop);
+        maze.update(&mut timer, &time_stop, block_input);
         maze.draw();
 
-        unsafe { BLOCK_INPUT = ui.draw(); }
+        block_input = ui.draw();
 
         next_frame().await
     }

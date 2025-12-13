@@ -84,10 +84,10 @@ impl Maze
         }
     }
 
-    pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration)
+    pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration, block_input: bool)
     {
         
-        unsafe { if !BLOCK_INPUT { self.handle_input(); } }
+        if !block_input { self.handle_input(); }
         self.update_solver(timer, time_stop);
     }
 
