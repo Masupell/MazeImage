@@ -21,7 +21,7 @@ async fn main()
     let mut timer = Instant::now();
     let time_stop = Duration::from_millis(10);
 
-    let ui = UI::new();
+    let mut ui = UI::new();
 
     let mut block_input: bool = false;
 
