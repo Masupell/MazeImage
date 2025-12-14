@@ -217,10 +217,21 @@ fn get_all_walls(grid: &Vec<bool>) -> Vec<usize>
 
 fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>) -> Vec<bool>
 {
+    let mut protected = vec![false; GRID_SIZE];
+    
     let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
     
     let start = random_start();
     grid[start] = true;
+
+    if let Some(wall_inputs) = &wall_input
+    {
+        for &idx in wall_inputs.iter() 
+        {
+            protected[idx] = true;
+        }
+    }
+
     let mut walls = if wall_input.is_some() { wall_input.unwrap() } else { sides(start, GRID_WIDTH, GRID_SIZE) };
 
     while !walls.is_empty()
@@ -257,16 +268,20 @@ fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>) ->
         if cell_one != cell_two // If only one is true (visited)
         {
             let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
-            
-            grid[cell] = true;
-            grid[unvisited] = true;
 
-            let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
-            for n in new_neighbours
+            let allow_carve = !protected[cell] || rand::gen_range(0.0, 1.0) < 0.1;
+            if allow_carve
             {
-                if !walls.contains(&n)
+                grid[cell] = true;
+                grid[unvisited] = true;
+
+                let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
+                for n in new_neighbours
                 {
-                    walls.push(n);
+                    if !walls.contains(&n)
+                    {
+                        walls.push(n);
+                    }
                 }
             }
         }
