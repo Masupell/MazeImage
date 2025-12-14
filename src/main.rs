@@ -12,7 +12,7 @@ pub mod canvas;
 
 use crate::canvas::Canvas;
 use crate::constants::window_config;
-use crate::ui::{AppState, UI, UiCommand};
+use crate::ui::{UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -30,11 +30,11 @@ async fn main()
 
     let mut canvas = Canvas::new(1280, 720);
 
+    let mut state = AppState::Maze;
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
-
-        let state = ui.state();
 
         match state
         {
@@ -50,7 +50,7 @@ async fn main()
             }
         }
 
-        block_input = ui.draw();
+        block_input = ui.draw(&state);
 
         for command in ui.drain_commands()
         {
@@ -73,10 +73,19 @@ async fn main()
                     };
                     
                     maze.regenerate_maze(grid, walls, threshold);
-                }
+                },
+                UiCommand::SwitchState(new_state) => state = new_state
             }
         }
 
         next_frame().await
     }
+}
+
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum AppState
+{
+    Maze,
+    Draw
 }

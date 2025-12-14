@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 use egui_macroquad::egui;
 
+use crate::AppState;
+
 const HOVER_WIDTH: f32 = 130.0;
 const PANEL_HEIGHT: f32 = 250.0;
 
@@ -11,8 +13,7 @@ pub struct UI
     image_path: String,
     include_image: bool,
     image_strength: f32, //0.0to1.0
-    commands: Vec<UiCommand>,
-    state: AppState
+    commands: Vec<UiCommand>
 }
 
 impl UI
@@ -24,14 +25,13 @@ impl UI
             visible: false,
             hovered: false,
             image_path: String::new(),
-            include_image: true,
+            include_image: false,
             image_strength: 0.1,
-            commands: Vec::new(),
-            state: AppState::Maze
+            commands: Vec::new()
         }
     }
 
-    pub fn draw(&mut self) -> bool
+    pub fn draw(&mut self, state: &AppState) -> bool
     {
         let mut block_input = false;
 
@@ -77,7 +77,7 @@ impl UI
                 .collapsible(false)
                 .show(egui_ctx, |ui| 
                 {
-                    ui.heading(match self.state 
+                    ui.heading(match state 
                     {
                         AppState::Maze => "Maze",
                         AppState::Draw => "Draw",
@@ -87,19 +87,19 @@ impl UI
 
                     ui.horizontal(|ui|
                     {
-                        if ui.selectable_label(self.state == AppState::Maze, "Maze").clicked() 
+                        if ui.selectable_label(*state == AppState::Maze, "Maze").clicked() 
                         {
-                            self.state = AppState::Maze;
+                            self.commands.push(UiCommand::SwitchState(AppState::Maze));
                         }
-                        if ui.selectable_label(self.state == AppState::Draw, "Draw").clicked() 
+                        if ui.selectable_label(*state == AppState::Draw, "Draw").clicked() 
                         {
-                            self.state = AppState::Draw;
+                            self.commands.push(UiCommand::SwitchState(AppState::Draw));
                         }
                     });
 
                     ui.separator();
 
-                    match self.state
+                    match state
                     {
                         AppState::Maze => self.maze_ui(ui),
                         AppState::Draw => self.draw_ui(ui),
@@ -161,21 +161,10 @@ impl UI
     {
         &self.image_path
     }
-
-    pub fn state(&self) -> AppState
-    {
-        self.state
-    }
 }
 
 pub enum UiCommand
 {
+    SwitchState(AppState),
     RegenerateMaze { use_image: bool, threshold: f32 }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum AppState
-{
-    Maze,
-    Draw
 }
