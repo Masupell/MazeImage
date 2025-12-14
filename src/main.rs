@@ -29,8 +29,8 @@ async fn main()
     let mut block_input: bool = false;
 
 
-    let image: Image = Image::gen_image_color(128, 128, BLACK);
-    let mut texture = Texture2D::from_image(&image);
+    // let image: Image = Image::gen_image_color(128, 128, BLACK);
+    // let mut texture = Texture2D::from_image(&image);
 
     let mut draw = false;
     let mut canvas = Canvas::new(1280, 720);
@@ -46,8 +46,8 @@ async fn main()
         
         if draw
         {
-            canvas.update();
-            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(vec2(screen_width(), screen_height())), ..Default::default() });
+            canvas.update(block_input);
+            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(vec2(1280.0, 720.0)), ..Default::default() });
             //draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(Vec2::new(1280.0, 720.0)), ..Default::default() });
         }
         else 
@@ -70,7 +70,7 @@ async fn main()
                         let (grid, image) = crate::image::get_input_grid(ui.get_path());
                         let walls = crate::maze::get_all_walls(&grid);
 
-                        texture = Texture2D::from_image(&image);
+                        canvas.set_image(image);
 
                         (Some(grid), Some(walls))
                     }

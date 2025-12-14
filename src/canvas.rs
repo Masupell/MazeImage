@@ -28,8 +28,18 @@ impl Canvas
         }
     }
 
-    pub fn update(&mut self) 
+    pub fn set_image(&mut self, image: Image)
     {
+        self.canvas = image;
+        self.texture = Texture2D::from_image(&self.canvas);
+        self.last_pos = None;
+        self.smooth_pos = vec2(0.0, 0.0);
+    }
+
+    pub fn update(&mut self, block_input: bool) 
+    {
+        if block_input { return; }
+
         let mouse = vec2(mouse_position().0, mouse_position().1);
 
         if is_mouse_button_down(MouseButton::Left) 
