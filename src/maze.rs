@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::{collections::HashSet, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
@@ -18,7 +18,9 @@ impl Maze
 
     pub fn new() -> Self
     {
-        let grid = run();//create_maze();
+        let mut grid = run();
+        let walls = get_all_walls(&grid);
+        grid = create_maze(Some(grid), Some(walls));
 
         Maze
         {
@@ -158,7 +160,7 @@ impl Maze
 
     pub fn regenerate_maze(&mut self)
     {
-        self.grid = create_maze();
+        self.grid = create_maze(None, None);
     }
 }
 
@@ -186,13 +188,40 @@ fn random_start() -> usize
     y * GRID_WIDTH + x
 }
 
-fn create_maze() -> Vec<bool>
+// Might keep this as hashset later, as it would be faster for the maze creation algorithm
+fn get_all_walls(grid: &Vec<bool>) -> Vec<usize>
 {
-    let mut grid = vec![false; GRID_SIZE];
+    let mut wall_set: HashSet<usize> = HashSet::new();
     
-    let start = random_start(); //GRID_WIDTH+1;
+    for y in 0..GRID_HEIGHT
+    {
+        if y % 2 == 0 { continue; }
+        for x in 0..GRID_WIDTH
+        {
+            if x % 2 == 0 { continue; }
+            let idx = y * GRID_WIDTH + x;
+            if !grid[idx] { continue; }
+
+            for &neighbour_idx in sides(idx, GRID_WIDTH, GRID_SIZE).iter()
+            {
+                if !grid[neighbour_idx]
+                {
+                    wall_set.insert(neighbour_idx);
+                }
+            }
+        }
+    }
+
+    wall_set.into_iter().collect()
+}
+
+fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>) -> Vec<bool>
+{
+    let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
+    
+    let start = random_start();
     grid[start] = true;
-    let mut walls = sides(start, GRID_WIDTH, GRID_SIZE);
+    let mut walls = if wall_input.is_some() { wall_input.unwrap() } else { sides(start, GRID_WIDTH, GRID_SIZE) };
 
     while !walls.is_empty()
     {
