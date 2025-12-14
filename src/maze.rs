@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use macroquad::{prelude::*, rand::gen_range};
 
-use crate::{constants::*, solver::Solver};
+use crate::{constants::*, image::run, solver::Solver};
 
 pub struct Maze
 {
@@ -18,7 +18,7 @@ impl Maze
 
     pub fn new() -> Self
     {
-        let grid = create_maze();
+        let grid = run();//create_maze();
 
         Maze
         {
