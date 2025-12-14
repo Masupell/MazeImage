@@ -64,6 +64,11 @@ impl Canvas
         self.texture.update(&self.canvas);
     }
 
+    pub fn get_size(&self) -> Vec2
+    {
+        vec2(self.canvas.width() as f32, self.canvas.height() as f32)
+    }
+
     fn draw_line(&mut self, a: Vec2, b: Vec2)
     {
         let dist = a.distance(b);

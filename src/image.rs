@@ -16,25 +16,41 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
     let mut image = input.unwrap();
     image = image.blur(5.0);
     image.to_luma8();
-    let output = sobel(&image, 0.05);
-    // output.save("src/res/output.png").unwrap();
 
+    let output = sobel(&image, 0.05);
     let macroquad_image = luma_to_macroquad_image(&output);
 
+    let image_width = output.width() as usize;
+    let image_height = output.height() as usize;
 
-    let width = output.width() as f32;
-    let height = output.height() as f32;
+    let image_aspect = image_width as f32 / image_height as f32;
+    let grid_aspect = GRID_WIDTH as f32 / GRID_HEIGHT as f32;
+
+    let (fit_width, fit_height, offset_x, offset_y) = if image_aspect > grid_aspect
+    {
+        let height= (GRID_WIDTH as f32 / image_aspect).round() as usize;
+        (GRID_WIDTH, height, 0, (GRID_HEIGHT-height)/2)
+    }
+    else 
+    {
+        let width = (GRID_HEIGHT as f32 * image_aspect).round() as usize;
+        (width, GRID_HEIGHT, (GRID_WIDTH-width)/2, 0)
+    };
 
     // Based on GRID_SIZE now not on image_size
     for gy in 0..GRID_HEIGHT 
     {
-        let y0 = gy * height as usize / GRID_HEIGHT;
-        let y1 = (gy + 1) * height as usize / GRID_HEIGHT;
+        if gy < offset_y || gy >= offset_y + fit_height { continue; }
+        
+        let y0 = (gy-offset_y) * image_height/fit_height;
+        let y1 = (gy+1-offset_y) * image_height/fit_height;
 
         for gx in 0..GRID_WIDTH 
         {
-            let x0 = gx * width as usize / GRID_WIDTH;
-            let x1 = (gx + 1) * width as usize / GRID_WIDTH;
+            if gx < offset_x || gx >= offset_x + fit_width { continue; }
+            
+            let x0 = (gx-offset_x) * image_width/fit_width;
+            let x1 = (gx+1-offset_x) * image_width/fit_width;
 
             let mut white = 0;
             for y in y0..y1 

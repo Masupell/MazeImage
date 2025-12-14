@@ -47,7 +47,7 @@ async fn main()
         if draw
         {
             canvas.update(block_input);
-            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(vec2(1280.0, 720.0)), ..Default::default() });
+            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(canvas.get_size()), ..Default::default() });
             //draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(Vec2::new(1280.0, 720.0)), ..Default::default() });
         }
         else 
