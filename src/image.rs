@@ -1,5 +1,5 @@
 use image::{DynamicImage, GrayImage, ImageBuffer, Luma};
-use macroquad::{color::BLACK, texture::Image};
+use macroquad::{color::BLACK, texture::Image, window::{screen_height, screen_width}};
 
 use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
@@ -18,7 +18,34 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
     image.to_luma8();
 
     let output = sobel(&image, 0.05);
-    let macroquad_image = luma_to_macroquad_image(&output);
+    // let macroquad_image = luma_to_macroquad_image(&output);
+    let src = luma_to_macroquad_image(&output);
+
+    let target_width = screen_width() as u16;
+    let target_height = screen_height() as u16;
+
+    let mut extended = Image::gen_image_color(target_width, target_height, BLACK);
+
+    let off_x = (target_width as i32 - src.width as i32) / 2;
+    let off_y = (target_height as i32 - src.height as i32) / 2;
+
+    for y in 0..src.height as u32
+    {
+        for x in 0..src.width as u32
+        {
+            let tx = x as i32 + off_x;
+            let ty = y as i32 + off_y;
+
+            if tx >= 0 && ty >= 0 &&
+            tx < target_width as i32 &&
+            ty < target_height as i32
+            {
+                let color = src.get_pixel(x, y);
+                extended.set_pixel(tx as u32, ty as u32, color);
+            }
+        }
+    }
+    let macroquad_image = extended;
 
     let image_width = output.width() as usize;
     let image_height = output.height() as usize;
