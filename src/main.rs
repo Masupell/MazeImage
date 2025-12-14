@@ -12,7 +12,7 @@ pub mod canvas;
 
 use crate::canvas::Canvas;
 use crate::constants::window_config;
-use crate::ui::{UI, UiCommand};
+use crate::ui::{AppState, UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -28,34 +28,27 @@ async fn main()
 
     let mut block_input: bool = false;
 
-
-    // let image: Image = Image::gen_image_color(128, 128, BLACK);
-    // let mut texture = Texture2D::from_image(&image);
-
-    let mut draw = false;
     let mut canvas = Canvas::new(1280, 720);
 
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
 
-        if is_key_released(KeyCode::Tab)
-        {
-            draw = !draw;
-        }
-        
-        if draw
-        {
-            canvas.update(block_input);
-            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(canvas.get_size()), ..Default::default() });
-            //draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(Vec2::new(1280.0, 720.0)), ..Default::default() });
-        }
-        else 
-        {
-            maze.update(&mut timer, &time_stop, block_input);
-            maze.draw();
-        }
+        let state = ui.state();
 
+        match state
+        {
+            AppState::Draw =>
+            {
+                canvas.update(block_input);
+                draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(canvas.get_size()), ..Default::default() });
+            },
+            AppState::Maze =>
+            {
+                maze.update(&mut timer, &time_stop, block_input);
+                maze.draw();
+            }
+        }
 
         block_input = ui.draw();
 

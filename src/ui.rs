@@ -11,7 +11,8 @@ pub struct UI
     image_path: String,
     include_image: bool,
     image_strength: f32, //0.0to1.0
-    commands: Vec<UiCommand>
+    commands: Vec<UiCommand>,
+    state: AppState
 }
 
 impl UI
@@ -25,7 +26,8 @@ impl UI
             image_path: String::new(),
             include_image: true,
             image_strength: 0.1,
-            commands: Vec::new()
+            commands: Vec::new(),
+            state: AppState::Maze
         }
     }
 
@@ -75,52 +77,33 @@ impl UI
                 .collapsible(false)
                 .show(egui_ctx, |ui| 
                 {
-                    ui.heading("TestStuff");
-
-                    ui.separator();
-                    ui.separator();
-
-                    if ui.button("Regenerate Maze").clicked()
+                    ui.heading(match self.state 
                     {
-                        if self.include_image
-                        {
-                            self.commands.push(UiCommand::RegenerateMaze { use_image: true, threshold: self.image_strength });
-                        }
-                        else 
-                        {
-                            self.commands.push(UiCommand::RegenerateMaze { use_image: false, threshold: self.image_strength });    
-                        }
-                    }
+                        AppState::Maze => "Maze",
+                        AppState::Draw => "Draw",
+                    });
 
                     ui.separator();
-                    ui.separator();
 
-                    ui.horizontal(|ui| 
+                    ui.horizontal(|ui|
                     {
-                        ui.checkbox(&mut self.include_image, "Include Image");
-                        ui.text_edit_singleline(&mut self.image_path);
-                        if ui.button("Browse").clicked() 
+                        if ui.selectable_label(self.state == AppState::Maze, "Maze").clicked() 
                         {
-                            if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Image files", &["png", "jpg", "jpeg", "bmp", "gif", "tiff"])
-                            .pick_file()
-                            {
-                                self.image_path = path.to_string_lossy().to_string();
-                            }
+                            self.state = AppState::Maze;
+                        }
+                        if ui.selectable_label(self.state == AppState::Draw, "Draw").clicked() 
+                        {
+                            self.state = AppState::Draw;
                         }
                     });
 
-                    ui.add(egui::Slider::new(&mut self.image_strength, 0.0..=1.0).text("Threshold"));
-
-                    ui.separator();
-                    ui.separator();
-                    ui.separator();
-                    ui.separator();
-                    ui.separator();
-                    ui.separator();
                     ui.separator();
 
-                    ui.label("TestStuff2");
+                    match self.state
+                    {
+                        AppState::Maze => self.maze_ui(ui),
+                        AppState::Draw => self.draw_ui(ui),
+                    }
                 });
             }
         });
@@ -128,6 +111,45 @@ impl UI
         egui_macroquad::draw();
 
         block_input
+    }
+
+    fn maze_ui(&mut self, ui: &mut egui::Ui)
+    {
+        if ui.button("Regenerate Maze").clicked()
+        {
+            self.commands.push(UiCommand::RegenerateMaze
+            {
+                use_image: self.include_image,
+                threshold: self.image_strength,
+            });
+        }
+
+        ui.separator();
+
+        ui.horizontal(|ui|
+        {
+            ui.checkbox(&mut self.include_image, "Include Image");
+            ui.text_edit_singleline(&mut self.image_path);
+
+            if ui.button("Browse").clicked()
+            {
+                if let Some(path) = rfd::FileDialog::new()
+                .add_filter("Image files", &["png", "jpg", "jpeg", "bmp", "gif", "tiff"])
+                .pick_file()
+                {
+                    self.image_path = path.to_string_lossy().to_string();
+                }
+            }
+        });
+
+        ui.add(egui::Slider::new(&mut self.image_strength, 0.0..=1.0).text("Threshold"));
+    }
+
+    fn draw_ui(&mut self, ui: &mut egui::Ui)
+    {
+        ui.label("Brush settings");
+        // ui.add(egui::Slider::new(&mut self.brush_size, 1.0..=50.0).text("Brush Size"));
+        // ui.add(egui::Slider::new(&mut self.smoothing, 0.0..=1.0).text("Smoothing"));
     }
 
     pub fn drain_commands(&mut self) -> Vec<UiCommand>
@@ -139,9 +161,21 @@ impl UI
     {
         &self.image_path
     }
+
+    pub fn state(&self) -> AppState
+    {
+        self.state
+    }
 }
 
 pub enum UiCommand
 {
     RegenerateMaze { use_image: bool, threshold: f32 }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum AppState
+{
+    Maze,
+    Draw
 }
