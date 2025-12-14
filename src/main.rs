@@ -8,7 +8,9 @@ pub mod maze;
 pub mod constants;
 pub mod solver;
 pub mod ui;
+pub mod canvas;
 
+use crate::canvas::Canvas;
 use crate::constants::window_config;
 use crate::ui::{UI, UiCommand};
 
@@ -29,20 +31,31 @@ async fn main()
 
     let image: Image = Image::gen_image_color(128, 128, BLACK);
     let mut texture = Texture2D::from_image(&image);
-    // let texture = Texture2D::
-    // texture.update_from_bytes(width, height, bytes);
+
+    let mut draw = false;
+    let mut canvas = Canvas::new(1280, 720);
 
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
 
-        maze.update(&mut timer, &time_stop, block_input);
-        maze.draw();
-
-        if is_key_down(KeyCode::Tab)
+        if is_key_released(KeyCode::Tab)
         {
-            draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(Vec2::new(1280.0, 720.0)), ..Default::default() });
+            draw = !draw;
         }
+        
+        if draw
+        {
+            canvas.update();
+            draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(vec2(screen_width(), screen_height())), ..Default::default() });
+            //draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(Vec2::new(1280.0, 720.0)), ..Default::default() });
+        }
+        else 
+        {
+            maze.update(&mut timer, &time_stop, block_input);
+            maze.draw();
+        }
+
 
         block_input = ui.draw();
 

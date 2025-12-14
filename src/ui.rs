@@ -84,9 +84,6 @@ impl UI
                     {
                         if self.include_image
                         {
-                            // let (grid, image) = crate::image::get_input_grid(&self.image_path);
-                            // let walls = crate::maze::get_all_walls(&grid);
-
                             self.commands.push(UiCommand::RegenerateMaze { use_image: true, threshold: self.image_strength });
                         }
                         else 
