@@ -32,6 +32,11 @@ async fn main()
 
     let mut state = AppState::Maze;
 
+    let mut brush_size = 6.0;
+    let mut smoothing = 0.5;
+
+    let mut color = WHITE;
+
     loop 
     {
         clear_background(Color::new(0.164705882, 0.164705882, 0.164705882, 1.0));
@@ -40,7 +45,7 @@ async fn main()
         {
             AppState::Draw =>
             {
-                canvas.update(block_input);
+                canvas.update(block_input, brush_size, smoothing, color);
                 draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(canvas.get_size()), ..Default::default() });
             },
             AppState::Maze =>
@@ -50,7 +55,7 @@ async fn main()
             }
         }
 
-        block_input = ui.draw(&state);
+        block_input = ui.draw(&state, &mut brush_size, &mut smoothing, color);
 
         for command in ui.drain_commands()
         {
@@ -74,7 +79,8 @@ async fn main()
                     
                     maze.regenerate_maze(grid, walls, threshold);
                 },
-                UiCommand::SwitchState(new_state) => state = new_state
+                UiCommand::SwitchState(new_state) => state = new_state,
+                UiCommand::SwitchColor(new_color) => color = new_color
             }
         }
 

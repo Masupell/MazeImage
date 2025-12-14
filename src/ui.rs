@@ -31,7 +31,7 @@ impl UI
         }
     }
 
-    pub fn draw(&mut self, state: &AppState) -> bool
+    pub fn draw(&mut self, state: &AppState, brush_size: &mut f32, smoothing: &mut f32, color: Color) -> bool
     {
         let mut block_input = false;
 
@@ -102,7 +102,7 @@ impl UI
                     match state
                     {
                         AppState::Maze => self.maze_ui(ui),
-                        AppState::Draw => self.draw_ui(ui),
+                        AppState::Draw => self.draw_ui(ui, brush_size, smoothing, color),
                     }
                 });
             }
@@ -145,11 +145,22 @@ impl UI
         ui.add(egui::Slider::new(&mut self.image_strength, 0.0..=1.0).text("Threshold"));
     }
 
-    fn draw_ui(&mut self, ui: &mut egui::Ui)
+    fn draw_ui(&mut self, ui: &mut egui::Ui, brush_size: &mut f32, smoothing: &mut f32, color: Color)
     {
         ui.label("Brush settings");
-        // ui.add(egui::Slider::new(&mut self.brush_size, 1.0..=50.0).text("Brush Size"));
-        // ui.add(egui::Slider::new(&mut self.smoothing, 0.0..=1.0).text("Smoothing"));
+        ui.horizontal(|ui|
+        {
+            if ui.selectable_label(color == WHITE, "White").clicked() 
+            {
+                self.commands.push(UiCommand::SwitchColor(WHITE));
+            }
+            if ui.selectable_label(color == BLACK, "Black").clicked() 
+            {
+                self.commands.push(UiCommand::SwitchColor(BLACK));
+            }
+        });
+        ui.add(egui::Slider::new(brush_size, 1.0..=50.0).text("Brush Size"));
+        ui.add(egui::Slider::new(smoothing, 0.005..=1.0).text("Smoothing"));
     }
 
     pub fn drain_commands(&mut self) -> Vec<UiCommand>
@@ -166,5 +177,6 @@ impl UI
 pub enum UiCommand
 {
     SwitchState(AppState),
-    RegenerateMaze { use_image: bool, threshold: f32 }
+    RegenerateMaze { use_image: bool, threshold: f32 },
+    SwitchColor(Color)
 }

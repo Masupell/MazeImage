@@ -5,9 +5,7 @@ pub struct Canvas
     canvas: Image,
     pub texture: Texture2D,
     last_pos: Option<Vec2>,
-    brush_radius: f32,
     smooth_pos: Vec2,
-    smoothing_factor: f32,
 }
 
 impl Canvas 
@@ -22,9 +20,7 @@ impl Canvas
             canvas,
             texture,
             last_pos: None,
-            brush_radius: 6.0,
             smooth_pos: vec2(0.0, 0.0),
-            smoothing_factor: 0.5
         }
     }
 
@@ -36,7 +32,7 @@ impl Canvas
         self.smooth_pos = vec2(0.0, 0.0);
     }
 
-    pub fn update(&mut self, block_input: bool) 
+    pub fn update(&mut self, block_input: bool, brush_size: f32, smoothing: f32, color: Color) 
     {
         if block_input { return; }
 
@@ -48,11 +44,11 @@ impl Canvas
             {
                 self.smooth_pos = mouse;
             }
-            self.smooth_pos = self.smooth_pos.lerp(mouse, self.smoothing_factor);
+            self.smooth_pos = self.smooth_pos.lerp(mouse, smoothing);
 
             if let Some(last) = self.last_pos
             {
-                self.draw_line(last, self.smooth_pos);
+                self.draw_line(last, self.smooth_pos, brush_size, color);
             }
             self.last_pos = Some(self.smooth_pos);
         }
@@ -69,7 +65,7 @@ impl Canvas
         vec2(self.canvas.width() as f32, self.canvas.height() as f32)
     }
 
-    fn draw_line(&mut self, a: Vec2, b: Vec2)
+    fn draw_line(&mut self, a: Vec2, b: Vec2, brush_size: f32, color: Color)
     {
         let dist = a.distance(b);
         let steps = dist.max(1.0) as i32;
@@ -78,13 +74,13 @@ impl Canvas
         {
             let t = i as f32 / steps as f32;
             let p = a.lerp(b, t);
-            self.draw_brush(p);
+            self.draw_brush(p, brush_size, color);
         }
     }
 
-    fn draw_brush(&mut self, pos: Vec2)
+    fn draw_brush(&mut self, pos: Vec2, brush_size: f32, color: Color)
     {
-        let r = self.brush_radius as i32;
+        let r = brush_size as i32;
 
         for y in -r..=r
         {
@@ -97,7 +93,7 @@ impl Canvas
 
                     if px >= 0 && py >= 0 && px < self.canvas.width() as i32 && py < self.canvas.height() as i32
                     {
-                        self.canvas.set_pixel(px as u32, py as u32, WHITE);
+                        self.canvas.set_pixel(px as u32, py as u32, color);
                     }
                 }
             }
