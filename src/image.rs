@@ -17,7 +17,7 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
     image = image.blur(5.0);
     image.to_luma8();
     let output = sobel(&image, 0.05);
-    output.save("src/res/output.png").unwrap();
+    // output.save("src/res/output.png").unwrap();
 
     let macroquad_image = luma_to_macroquad_image(&output);
 

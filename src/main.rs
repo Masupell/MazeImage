@@ -9,14 +9,14 @@ pub mod constants;
 pub mod solver;
 pub mod ui;
 
-use crate::constants::{GRID_SIZE, window_config};
+use crate::constants::window_config;
 use crate::ui::{UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
 {
-    println!("GridSize: {}", GRID_SIZE);
     srand(miniquad::date::now() as u64);
+
     let mut maze = maze::Maze::new();
 
     let mut timer = Instant::now();
@@ -50,13 +50,23 @@ async fn main()
         {
             match command
             {
-                UiCommand::RegenerateMaze { grid_input, wall_input, image, threshold } => 
+                UiCommand::RegenerateMaze { use_image, threshold } => 
                 {
-                    if let Some(unwrapped_image) = image
+                    let (grid, walls) = if use_image
                     {
-                        texture = Texture2D::from_image(&unwrapped_image);
+                        let (grid, image) = crate::image::get_input_grid(ui.get_path());
+                        let walls = crate::maze::get_all_walls(&grid);
+
+                        texture = Texture2D::from_image(&image);
+
+                        (Some(grid), Some(walls))
                     }
-                    maze.regenerate_maze(grid_input, wall_input, threshold);
+                    else 
+                    {
+                        (None, None)
+                    };
+                    
+                    maze.regenerate_maze(grid, walls, threshold);
                 }
             }
         }

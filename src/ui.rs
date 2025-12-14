@@ -84,14 +84,14 @@ impl UI
                     {
                         if self.include_image
                         {
-                            let (grid, image) = crate::image::get_input_grid(&self.image_path);
-                            let walls = crate::maze::get_all_walls(&grid);
+                            // let (grid, image) = crate::image::get_input_grid(&self.image_path);
+                            // let walls = crate::maze::get_all_walls(&grid);
 
-                            self.commands.push(UiCommand::RegenerateMaze { grid_input: Some(grid), wall_input: Some(walls), image: Some(image), threshold: self.image_strength });
+                            self.commands.push(UiCommand::RegenerateMaze { use_image: true, threshold: self.image_strength });
                         }
                         else 
                         {
-                            self.commands.push(UiCommand::RegenerateMaze { grid_input: None, wall_input: None, image: None, threshold: self.image_strength });    
+                            self.commands.push(UiCommand::RegenerateMaze { use_image: false, threshold: self.image_strength });    
                         }
                     }
 
@@ -137,9 +137,14 @@ impl UI
     {
         std::mem::take(&mut self.commands)
     }
+
+    pub fn get_path(&self) -> &str
+    {
+        &self.image_path
+    }
 }
 
 pub enum UiCommand
 {
-    RegenerateMaze { grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, image: Option<Image>, threshold: f32 }
+    RegenerateMaze { use_image: bool, threshold: f32 }
 }
