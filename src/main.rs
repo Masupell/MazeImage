@@ -10,7 +10,7 @@ pub mod solver;
 pub mod ui;
 
 use crate::constants::window_config;
-use crate::ui::UI;
+use crate::ui::{UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -33,6 +33,14 @@ async fn main()
         maze.draw();
 
         block_input = ui.draw();
+
+        for command in ui.drain_commands()
+        {
+            match command
+            {
+                UiCommand::RegenerateMaze => maze.regenerate_maze(),
+            }
+        }
 
         next_frame().await
     }

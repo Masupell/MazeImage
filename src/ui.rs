@@ -7,7 +7,8 @@ const PANEL_HEIGHT: f32 = 250.0;
 pub struct UI
 {
     visible: bool,
-    hovered: bool
+    hovered: bool,
+    commands: Vec<UiCommand>
 }
 
 impl UI
@@ -18,6 +19,7 @@ impl UI
         {
             visible: false,
             hovered: false,
+            commands: Vec::new()
         }
     }
 
@@ -41,8 +43,9 @@ impl UI
             if self.hovered || self.visible// && !self.visible
             {
                 egui::Window::new("ui_handle")
-                .fixed_pos(egui::pos2(0.0, center_y - 20.0))
-                .fixed_size(egui::vec2(24.0, 40.0))
+                .frame(egui::Frame::NONE)
+                .fixed_pos(egui::pos2(2.0, center_y - 20.0))
+                .fixed_size(egui::vec2(24.0, 80.0))
                 .title_bar(false)
                 .resizable(false)
                 .movable(false)
@@ -59,7 +62,7 @@ impl UI
             if self.visible
             {
                 egui::Window::new("Debug Panel")
-                .fixed_pos(egui::pos2(0.0, center_y - PANEL_HEIGHT * 0.5))
+                .fixed_pos(egui::pos2(24.0, center_y - PANEL_HEIGHT * 0.5))
                 .fixed_size(egui::vec2(260.0, PANEL_HEIGHT))
                 .movable(false)
                 .resizable(false)
@@ -68,6 +71,22 @@ impl UI
                 {
                     ui.heading("TestStuff");
 
+                    ui.separator();
+                    ui.separator();
+
+                    if ui.button("Regenerate Maze").clicked()
+                    {
+                        self.commands.push(UiCommand::RegenerateMaze);
+                    }
+
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
+                    ui.separator();
                     ui.separator();
 
                     ui.label("TestStuff2");
@@ -79,4 +98,14 @@ impl UI
 
         block_input
     }
+
+    pub fn drain_commands(&mut self) -> Vec<UiCommand>
+    {
+        std::mem::take(&mut self.commands)
+    }
+}
+
+pub enum UiCommand
+{
+    RegenerateMaze
 }

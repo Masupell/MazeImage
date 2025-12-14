@@ -18,61 +18,7 @@ impl Maze
 
     pub fn new() -> Self
     {
-        let mut grid = vec![false; GRID_SIZE];
-    
-        let start = random_start(); //GRID_WIDTH+1;
-        grid[start] = true;
-        let mut walls = sides(start, GRID_WIDTH, GRID_SIZE);
-    
-        while !walls.is_empty()
-        {
-            let idx = gen_range(0, walls.len());
-            let cell = walls[idx];
-    
-            let x = cell % GRID_WIDTH;
-            let y = cell / GRID_WIDTH;
-    
-            let cell_one_idx;
-            let cell_two_idx;
-            let cell_one;
-            let cell_two;
-    
-            if y % 2 == 1 && x % 2 == 0 // y is odd, x is even, means cells are to the left and right
-            {
-                if x == 0 || x+1 >= GRID_WIDTH { walls.remove(idx); continue; }
-                cell_one_idx = y * GRID_WIDTH + x-1;
-                cell_two_idx = y * GRID_WIDTH + x+1;
-                cell_one = grid[cell_one_idx];
-                cell_two = grid[cell_two_idx];
-            }
-            else if y % 2 == 0 && x % 2 == 1 // y is even, x is odd, means cells are up and down
-            {
-                if y == 0 || y+1 >= GRID_HEIGHT { walls.remove(idx); continue; }
-                cell_one_idx = (y-1) * GRID_WIDTH + x;
-                cell_two_idx = (y+1) * GRID_WIDTH + x;
-                cell_one = grid[cell_one_idx];
-                cell_two = grid[cell_two_idx];
-            }
-            else { walls.remove(idx); continue; }
-    
-            if cell_one != cell_two // If only one is true (visited)
-            {
-                let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
-                
-                grid[cell] = true;
-                grid[unvisited] = true;
-    
-                let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
-                for n in new_neighbours
-                {
-                    if !walls.contains(&n)
-                    {
-                        walls.push(n);
-                    }
-                }
-            }
-            walls.remove(idx);
-        }
+        let grid = create_maze();
 
         Maze
         {
@@ -209,6 +155,11 @@ impl Maze
         let end_y = (self.end / GRID_WIDTH) as f32 * cell_size;
         draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
+
+    pub fn regenerate_maze(&mut self)
+    {
+        self.grid = create_maze();
+    }
 }
 
 fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
@@ -233,4 +184,65 @@ fn random_start() -> usize
     let y = gen_range(0, GRID_HEIGHT/2) * 2+1;
 
     y * GRID_WIDTH + x
+}
+
+fn create_maze() -> Vec<bool>
+{
+    let mut grid = vec![false; GRID_SIZE];
+    
+    let start = random_start(); //GRID_WIDTH+1;
+    grid[start] = true;
+    let mut walls = sides(start, GRID_WIDTH, GRID_SIZE);
+
+    while !walls.is_empty()
+    {
+        let idx = gen_range(0, walls.len());
+        let cell = walls[idx];
+
+        let x = cell % GRID_WIDTH;
+        let y = cell / GRID_WIDTH;
+
+        let cell_one_idx;
+        let cell_two_idx;
+        let cell_one;
+        let cell_two;
+
+        if y % 2 == 1 && x % 2 == 0 // y is odd, x is even, means cells are to the left and right
+        {
+            if x == 0 || x+1 >= GRID_WIDTH { walls.remove(idx); continue; }
+            cell_one_idx = y * GRID_WIDTH + x-1;
+            cell_two_idx = y * GRID_WIDTH + x+1;
+            cell_one = grid[cell_one_idx];
+            cell_two = grid[cell_two_idx];
+        }
+        else if y % 2 == 0 && x % 2 == 1 // y is even, x is odd, means cells are up and down
+        {
+            if y == 0 || y+1 >= GRID_HEIGHT { walls.remove(idx); continue; }
+            cell_one_idx = (y-1) * GRID_WIDTH + x;
+            cell_two_idx = (y+1) * GRID_WIDTH + x;
+            cell_one = grid[cell_one_idx];
+            cell_two = grid[cell_two_idx];
+        }
+        else { walls.remove(idx); continue; }
+
+        if cell_one != cell_two // If only one is true (visited)
+        {
+            let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
+            
+            grid[cell] = true;
+            grid[unvisited] = true;
+
+            let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
+            for n in new_neighbours
+            {
+                if !walls.contains(&n)
+                {
+                    walls.push(n);
+                }
+            }
+        }
+        walls.remove(idx);
+    }
+    
+    grid
 }
