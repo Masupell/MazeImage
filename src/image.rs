@@ -1,12 +1,12 @@
-use image_manipulation::image_shader::image_shader;
+use image::{DynamicImage, GrayImage, Luma};
 
-use crate::constants::{GRID_SIZE, GRID_WIDTH};
+use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
 pub fn run() -> Vec<bool>
 {
     let mut grid = vec![false; GRID_SIZE];
 
-    let input = image::open("src/res/546727.jpg");
+    let input = image::open("src/res/Car.png");
     if input.is_err()
     {
         println!("Error\n(Could be wrong path/does not exist");
@@ -14,45 +14,38 @@ pub fn run() -> Vec<bool>
     }
     let mut image = input.unwrap();
     image = image.blur(5.0);
-    let output = pollster::block_on(image_shader(image, "src/sobel_operator.wgsl"));
-    output.save("src/res/output.png").unwrap();
+    image.to_luma8();
+    let output = sobel(&image, 0.05);
 
 
     let width = output.width() as f32;
     let height = output.height() as f32;
 
-    let image_cell_size = (width as f32 / GRID_WIDTH as f32) as u32;
-    let image_grid_width = (width / image_cell_size as f32) as u32;
-    let image_grid_height = (height / image_cell_size as f32) as u32;
-
-    let pixel_cells = image_cell_size*image_cell_size;
-    let threshold = pixel_cells/4;
-
-    // Better for gpu, do that later
-    for y in 0..image_grid_height // Grid
+    // Based on GRID_SIZE now not on image_size
+    for gy in 0..GRID_HEIGHT 
     {
-        for x in 0..image_grid_width
+        let y0 = gy * height as usize / GRID_HEIGHT;
+        let y1 = (gy + 1) * height as usize / GRID_HEIGHT;
+
+        for gx in 0..GRID_WIDTH 
         {
+            let x0 = gx * width as usize / GRID_WIDTH;
+            let x1 = (gx + 1) * width as usize / GRID_WIDTH;
+
             let mut white = 0;
-            for yy in 0..image_cell_size // Each Cell in the grid
+            for y in y0..y1 
             {
-                for xx in 0..image_cell_size
+                for x in x0..x1 
                 {
-                    let image_x = x*image_cell_size + xx;
-                    let image_y = y*image_cell_size + yy;
-                    let pixel = output.get_pixel(image_x, image_y);
-                    
-                    if pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255
-                    {
-                        white += 1;
-                    }
+                    let pixel = output.get_pixel(x as u32, y as u32);
+                    if pixel[0] == 255 { white += 1; }
                 }
             }
 
-            if white >= threshold
+            let cell_pixel_count = (x1 - x0) * (y1 - y0);
+            if white * 4 >= cell_pixel_count 
             {
-                let idx = y*image_grid_width+x;
-                grid[idx as usize] = true;
+                grid[gy*GRID_WIDTH + gx] = true;
             }
         }
     }
@@ -60,13 +53,50 @@ pub fn run() -> Vec<bool>
     grid
 }
 
-#[cfg(test)]
-mod tests 
+// Simple Edge detection
+pub fn sobel(img: &DynamicImage, threshold: f32,) -> GrayImage 
 {
-    use super::*;
+    let gray = img.to_luma8();
+    let (w, h) = gray.dimensions();
+    let mut out = GrayImage::new(w, h);
 
-    #[test]
-    fn test() {
-        run();
+    let gx: [[f32; 3]; 3] = 
+    [
+        [-1.0, 0.0, 1.0],
+        [-2.0, 0.0, 2.0],
+        [-1.0, 0.0, 1.0],
+    ];
+
+    let gy: [[f32; 3]; 3] = 
+    [
+        [-1.0, -2.0, -1.0],
+        [ 0.0,  0.0,  0.0],
+        [ 1.0,  2.0,  1.0],
+    ];
+
+    for y in 1..h - 1 
+    {
+        for x in 1..w - 1 
+        {
+            let mut sx = 0.0;
+            let mut sy = 0.0;
+
+            for ky in 0..3 
+            {
+                for kx in 0..3 
+                {
+                    let px = gray.get_pixel(x + kx - 1, y + ky - 1)[0] as f32 / 255.0;
+
+                    sx += gx[ky as usize][kx as usize] * px;
+                    sy += gy[ky as usize][kx as usize] * px;
+                }
+            }
+
+            let edge_strength = sx * sx + sy * sy;
+
+            out.put_pixel(x, y, Luma([ if edge_strength >= threshold { 255 } else { 0 } ]));
+        }
     }
+
+    out
 }

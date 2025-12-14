@@ -9,12 +9,13 @@ pub mod constants;
 pub mod solver;
 pub mod ui;
 
-use crate::constants::window_config;
+use crate::constants::{GRID_SIZE, window_config};
 use crate::ui::{UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
 {
+    println!("GridSize: {}", GRID_SIZE);
     srand(miniquad::date::now() as u64);
     let mut maze = maze::Maze::new();
 
