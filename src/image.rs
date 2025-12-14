@@ -2,11 +2,11 @@ use image::{DynamicImage, GrayImage, Luma};
 
 use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
-pub fn run() -> Vec<bool>
+pub fn get_input_grid(path: &str) -> Vec<bool>
 {
     let mut grid = vec![false; GRID_SIZE];
 
-    let input = image::open("src/res/Car.png");
+    let input = image::open(path);
     if input.is_err()
     {
         println!("Error\n(Could be wrong path/does not exist");
@@ -16,6 +16,7 @@ pub fn run() -> Vec<bool>
     image = image.blur(5.0);
     image.to_luma8();
     let output = sobel(&image, 0.05);
+    output.save("src/res/output.png").unwrap();
 
 
     let width = output.width() as f32;

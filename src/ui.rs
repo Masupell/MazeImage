@@ -8,6 +8,9 @@ pub struct UI
 {
     visible: bool,
     hovered: bool,
+    image_path: String,
+    include_image: bool,
+    image_strength: f32, //0.0to1.0
     commands: Vec<UiCommand>
 }
 
@@ -19,6 +22,9 @@ impl UI
         {
             visible: false,
             hovered: false,
+            image_path: String::new(),
+            include_image: true,
+            image_strength: 0.1,
             commands: Vec::new()
         }
     }
@@ -76,11 +82,39 @@ impl UI
 
                     if ui.button("Regenerate Maze").clicked()
                     {
-                        self.commands.push(UiCommand::RegenerateMaze);
+                        if self.include_image
+                        {
+                            let grid = crate::image::get_input_grid(&self.image_path);
+                            let walls = crate::maze::get_all_walls(&grid);
+
+                            self.commands.push(UiCommand::RegenerateMaze { grid_input: Some(grid), wall_input: Some(walls), threshold: self.image_strength });
+                        }
+                        else 
+                        {
+                            self.commands.push(UiCommand::RegenerateMaze { grid_input: None, wall_input: None, threshold: self.image_strength });    
+                        }
                     }
 
                     ui.separator();
                     ui.separator();
+
+                    ui.horizontal(|ui| 
+                    {
+                        ui.checkbox(&mut self.include_image, "Include Image");
+                        ui.text_edit_singleline(&mut self.image_path);
+                        if ui.button("Browse").clicked() 
+                        {
+                            if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Image files", &["png", "jpg", "jpeg", "bmp", "gif", "tiff"])
+                            .pick_file()
+                            {
+                                self.image_path = path.to_string_lossy().to_string();
+                            }
+                        }
+                    });
+
+                    ui.add(egui::Slider::new(&mut self.image_strength, 0.0..=1.0).text("Threshold"));
+
                     ui.separator();
                     ui.separator();
                     ui.separator();
@@ -107,5 +141,5 @@ impl UI
 
 pub enum UiCommand
 {
-    RegenerateMaze
+    RegenerateMaze { grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32 }
 }

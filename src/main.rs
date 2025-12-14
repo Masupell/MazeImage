@@ -39,7 +39,7 @@ async fn main()
         {
             match command
             {
-                UiCommand::RegenerateMaze => maze.regenerate_maze(),
+                UiCommand::RegenerateMaze { grid_input, wall_input, threshold } => maze.regenerate_maze(grid_input, wall_input, threshold),
             }
         }
 

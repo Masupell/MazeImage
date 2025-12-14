@@ -2,7 +2,7 @@ use std::{collections::HashSet, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
-use crate::{constants::*, image::run, solver::Solver};
+use crate::{constants::*, solver::Solver};
 
 pub struct Maze
 {
@@ -18,9 +18,10 @@ impl Maze
 
     pub fn new() -> Self
     {
-        let mut grid = run();
-        let walls = get_all_walls(&grid);
-        grid = create_maze(Some(grid), Some(walls));
+        // let mut grid = get_input_grid();
+        // let walls = get_all_walls(&grid);
+        // grid = create_maze(Some(grid), Some(walls));
+        let grid = create_maze(None, None, 0.1);
 
         Maze
         {
@@ -158,9 +159,9 @@ impl Maze
         draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
-    pub fn regenerate_maze(&mut self)
+    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32)
     {
-        self.grid = create_maze(None, None);
+        self.grid = create_maze(grid_input, wall_input, threshold);
     }
 }
 
@@ -189,7 +190,7 @@ fn random_start() -> usize
 }
 
 // Might keep this as hashset later, as it would be faster for the maze creation algorithm
-fn get_all_walls(grid: &Vec<bool>) -> Vec<usize>
+pub fn get_all_walls(grid: &Vec<bool>) -> Vec<usize> // I dont know about public, but is the simplest way for now
 {
     let mut wall_set: HashSet<usize> = HashSet::new();
     
@@ -215,7 +216,7 @@ fn get_all_walls(grid: &Vec<bool>) -> Vec<usize>
     wall_set.into_iter().collect()
 }
 
-fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>) -> Vec<bool>
+fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32) -> Vec<bool>
 {
     let mut protected = vec![false; GRID_SIZE];
     
@@ -269,7 +270,7 @@ fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>) ->
         {
             let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
 
-            let allow_carve = !protected[cell] || rand::gen_range(0.0, 1.0) < 0.1;
+            let allow_carve = !protected[cell] || rand::gen_range(0.0, 1.0) < threshold;
             if allow_carve
             {
                 grid[cell] = true;
