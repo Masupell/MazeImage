@@ -84,14 +84,14 @@ impl UI
                     {
                         if self.include_image
                         {
-                            let grid = crate::image::get_input_grid(&self.image_path);
+                            let (grid, image) = crate::image::get_input_grid(&self.image_path);
                             let walls = crate::maze::get_all_walls(&grid);
 
-                            self.commands.push(UiCommand::RegenerateMaze { grid_input: Some(grid), wall_input: Some(walls), threshold: self.image_strength });
+                            self.commands.push(UiCommand::RegenerateMaze { grid_input: Some(grid), wall_input: Some(walls), image: Some(image), threshold: self.image_strength });
                         }
                         else 
                         {
-                            self.commands.push(UiCommand::RegenerateMaze { grid_input: None, wall_input: None, threshold: self.image_strength });    
+                            self.commands.push(UiCommand::RegenerateMaze { grid_input: None, wall_input: None, image: None, threshold: self.image_strength });    
                         }
                     }
 
@@ -141,5 +141,5 @@ impl UI
 
 pub enum UiCommand
 {
-    RegenerateMaze { grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32 }
+    RegenerateMaze { grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, image: Option<Image>, threshold: f32 }
 }

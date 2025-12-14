@@ -1,8 +1,9 @@
-use image::{DynamicImage, GrayImage, Luma};
+use image::{DynamicImage, GrayImage, ImageBuffer, Luma};
+use macroquad::{color::BLACK, texture::Image};
 
 use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
-pub fn get_input_grid(path: &str) -> Vec<bool>
+pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
 {
     let mut grid = vec![false; GRID_SIZE];
 
@@ -10,13 +11,15 @@ pub fn get_input_grid(path: &str) -> Vec<bool>
     if input.is_err()
     {
         println!("Error\n(Could be wrong path/does not exist");
-        return grid;
+        return (grid, Image::gen_image_color(16, 16, BLACK));
     }
     let mut image = input.unwrap();
     image = image.blur(5.0);
     image.to_luma8();
     let output = sobel(&image, 0.05);
     output.save("src/res/output.png").unwrap();
+
+    let macroquad_image = luma_to_macroquad_image(&output);
 
 
     let width = output.width() as f32;
@@ -51,7 +54,7 @@ pub fn get_input_grid(path: &str) -> Vec<bool>
         }
     }
 
-    grid
+    (grid, macroquad_image)
 }
 
 // Simple Edge detection
@@ -100,4 +103,25 @@ pub fn sobel(img: &DynamicImage, threshold: f32,) -> GrayImage
     }
 
     out
+}
+
+
+fn luma_to_macroquad_image(src: &ImageBuffer<Luma<u8>, Vec<u8>>) -> Image 
+{
+    let (w, h) = src.dimensions();
+    let mut img = Image::gen_image_color(w as u16, h as u16, BLACK);
+
+    let dst = &mut img.bytes;
+
+    for (i, pixel) in src.pixels().enumerate() 
+    {
+        let v = pixel[0];
+        let di = i * 4;
+        dst[di]     = v;
+        dst[di + 1] = v;
+        dst[di + 2] = v;
+        dst[di + 3] = 255;
+    }
+
+    img
 }
