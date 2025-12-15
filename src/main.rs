@@ -89,6 +89,10 @@ async fn main()
                 UiCommand::SwitchState(new_state) => state = new_state,
                 UiCommand::SwitchColor(new_color) => color = new_color,
                 UiCommand::ShowGrid(show) => canvas.show_grid(show),
+                UiCommand::SwitchFillMode(new_fill) =>
+                {
+                    canvas.set_fill(new_fill);
+                }
             }
         }
 

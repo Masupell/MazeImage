@@ -14,7 +14,8 @@ pub struct UI
     image: InputImage,
     image_strength: f32, //0.0to1.0
     commands: Vec<UiCommand>,
-    show_grid: bool
+    show_grid: bool,
+    fill_mode: FillMode,
 }
 
 impl UI
@@ -29,7 +30,8 @@ impl UI
             image: InputImage::None,
             image_strength: 0.1,
             commands: Vec::new(),
-            show_grid: false
+            show_grid: false,
+            fill_mode: FillMode::None
         }
     }
 
@@ -193,6 +195,23 @@ impl UI
         {
             self.commands.push(UiCommand::ShowGrid(self.show_grid));
         }
+
+        ui.horizontal(|ui|
+        {
+            let normal_fill = self.fill_mode == FillMode::NormalFill;
+            if ui.selectable_label(normal_fill, "Normal Fill").clicked()
+            {
+                self.fill_mode = if normal_fill { FillMode::None } else { FillMode::NormalFill };
+                self.commands.push(UiCommand::SwitchFillMode(self.fill_mode));
+            }
+
+            let grid_fill = self.fill_mode == FillMode::GridFill;
+            if ui.selectable_label(grid_fill, "Grid Fill").clicked()
+            {
+                self.fill_mode = if grid_fill { FillMode::None } else { FillMode::GridFill };
+                self.commands.push(UiCommand::SwitchFillMode(self.fill_mode));
+            }
+        });
     }
 
     pub fn drain_commands(&mut self) -> Vec<UiCommand>
@@ -211,7 +230,8 @@ pub enum UiCommand
     SwitchState(AppState),
     RegenerateMaze { use_image: InputImage, threshold: f32 },
     SwitchColor(Color),
-    ShowGrid(bool)
+    ShowGrid(bool),
+    SwitchFillMode(FillMode)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -220,4 +240,12 @@ pub enum InputImage
     Image,
     Drawing,
     None
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum FillMode 
+{
+    NormalFill,
+    GridFill,
+    None,
 }

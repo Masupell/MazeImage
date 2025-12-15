@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::constants::{GRID_HEIGHT, GRID_WIDTH};
+use crate::{constants::{GRID_HEIGHT, GRID_WIDTH}, ui::FillMode};
 
 pub struct Canvas
 {
@@ -11,7 +11,9 @@ pub struct Canvas
     show_grid: bool,
     zoom: f32,
     offset: Vec2,
-    pan_last: Option<Vec2>
+    pan_last: Option<Vec2>,
+    grid_fill: bool,
+    normal_fill: bool,
 }
 
 impl Canvas 
@@ -20,6 +22,7 @@ impl Canvas
     {
         let canvas = Image::gen_image_color(width, height, BLACK);
         let texture = Texture2D::from_image(&canvas);
+        texture.set_filter(FilterMode::Nearest);
 
         Self 
         {
@@ -30,7 +33,9 @@ impl Canvas
             show_grid: false,
             zoom: 1.0,
             offset: vec2(0.0, 0.0),
-            pan_last: None
+            pan_last: None,
+            grid_fill: false,
+            normal_fill: false
         }
     }
 
@@ -38,6 +43,7 @@ impl Canvas
     {
         self.canvas = image;
         self.texture = Texture2D::from_image(&self.canvas);
+        self.texture.set_filter(FilterMode::Nearest);
         self.last_pos = None;
         self.smooth_pos = vec2(0.0, 0.0);
     }
@@ -92,7 +98,7 @@ impl Canvas
         {
             self.pan_last = None;
         }
-
+        
         if is_mouse_button_down(MouseButton::Left) 
         {
             if self.last_pos.is_none()
@@ -103,7 +109,10 @@ impl Canvas
 
             if let Some(last) = self.last_pos
             {
-                self.draw_line(last, self.smooth_pos, brush_size, color);
+                if self.normal_fill { self.fill_normal(mouse, color); }
+                else if self.grid_fill { self.fill_grid_cell(mouse, color); }
+                else { self.draw_line(last, self.smooth_pos, brush_size, color); }
+
                 self.texture.update(&self.canvas);
             }
             self.last_pos = Some(self.smooth_pos);
@@ -186,5 +195,68 @@ impl Canvas
     pub fn show_grid(&mut self, show: bool)
     {
         self.show_grid = show;
+    }
+
+
+    pub fn fill_grid_cell(&mut self, mouse: Vec2, color: Color)
+    {
+        let cell_width = self.canvas.width() as f32 / GRID_WIDTH as f32;
+        let cell_height = self.canvas.height() as f32 / GRID_HEIGHT as f32;
+
+        let gx = (mouse.x / cell_width).floor().clamp(0.0, (GRID_WIDTH-1) as f32) as usize;
+        let gy = (mouse.y / cell_height).floor().clamp(0.0, (GRID_HEIGHT-1) as f32) as usize;
+
+        let start_x = (gx as f32 * cell_width).floor() as u32;
+        let start_y = (gy as f32 * cell_height).floor() as u32;
+
+        let end_x = ((gx+1) as f32 * cell_width).ceil() as u32;
+        let end_y = ((gy+1) as f32 * cell_height).ceil() as u32;
+
+        for y in start_y..end_y.min(self.canvas.height() as u32)
+        {
+            for x in start_x..end_x.min(self.canvas.width() as u32)
+            {
+                self.canvas.set_pixel(x, y, color);
+            }
+        }
+    }
+
+    pub fn fill_normal(&mut self, start: Vec2, color: Color)
+    {
+        let width = self.canvas.width();
+        let height = self.canvas.height();
+
+        let mut stack = vec![(start.x as i32, start.y as i32)];
+        let target_color = self.canvas.get_pixel(start.x as u32, start.y as u32);
+
+        if target_color == color { return; }
+
+        while let Some((x, y)) = stack.pop()
+        {
+            if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 { continue; }
+
+            let current = self.canvas.get_pixel(x as u32, y as u32);
+            if current != target_color
+            {
+                continue;
+            }
+
+            self.canvas.set_pixel(x as u32, y as u32, color);
+
+            stack.push((x+1, y));
+            stack.push((x-1, y));
+            stack.push((x, y+1));
+            stack.push((x, y-1));
+        }
+    }
+
+    pub fn set_fill(&mut self, fill_mode: FillMode)
+    {
+        match fill_mode 
+        {
+            FillMode::NormalFill => { self.normal_fill=true; self.grid_fill=false; },
+            FillMode::GridFill => { self.normal_fill=false; self.grid_fill=true; },
+            FillMode::None => { self.normal_fill=false; self.grid_fill=false; },
+        }
     }
 }
