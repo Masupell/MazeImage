@@ -18,10 +18,7 @@ impl Maze
 
     pub fn new() -> Self
     {
-        // let mut grid = get_input_grid();
-        // let walls = get_all_walls(&grid);
-        // grid = create_maze(Some(grid), Some(walls));
-        let grid = create_maze(None, None, 0.1);
+        let grid = create_maze(None, 0.1);
 
         Maze
         {
@@ -159,9 +156,9 @@ impl Maze
         draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
-    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32)
+    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32)
     {
-        self.grid = create_maze(grid_input, wall_input, threshold);
+        self.grid = create_maze(grid_input, threshold);
     }
 }
 
@@ -190,24 +187,21 @@ fn random_start() -> usize
 }
 
 // Might keep this as hashset later, as it would be faster for the maze creation algorithm
-pub fn get_all_walls(grid: &Vec<bool>) -> Vec<usize> // I dont know about public, but is the simplest way for now
+fn get_all_walls(protected: &Vec<bool>) -> Vec<usize>
 {
     let mut wall_set: HashSet<usize> = HashSet::new();
-    
-    for y in 0..GRID_HEIGHT
-    {
-        if y % 2 == 0 { continue; }
-        for x in 0..GRID_WIDTH
-        {
-            if x % 2 == 0 { continue; }
-            let idx = y * GRID_WIDTH + x;
-            if !grid[idx] { continue; }
 
-            for &neighbour_idx in sides(idx, GRID_WIDTH, GRID_SIZE).iter()
+    for idx in 0..GRID_SIZE
+    {
+        if !protected[idx] { continue; }
+        
+        for ring1 in all_sides(idx, GRID_WIDTH, GRID_SIZE) //buffer around it
+        {
+            for ring2 in sides(ring1, GRID_WIDTH, GRID_SIZE) //actual walls
             {
-                if !grid[neighbour_idx]
+                if !protected[ring2]
                 {
-                    wall_set.insert(neighbour_idx);
+                    wall_set.insert(ring2);
                 }
             }
         }
@@ -216,27 +210,53 @@ pub fn get_all_walls(grid: &Vec<bool>) -> Vec<usize> // I dont know about public
     wall_set.into_iter().collect()
 }
 
-fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, threshold: f32) -> Vec<bool>
+fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
 {
     let mut protected = vec![false; GRID_SIZE];
     
     let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
     
-    let start = random_start();
-    grid[start] = true;
-
-    if let Some(wall_inputs) = &wall_input
+    for (idx, &input) in grid.iter().enumerate()
     {
-        for &idx in wall_inputs.iter() 
+        protected[idx] = input;
+    }
+    protected = expand_protection_zone(&protected);
+
+    let mut walls =  get_all_walls(&protected);
+
+    if walls.is_empty()
+    {
+        let start = loop
         {
-            protected[idx] = true;
+            let s = random_start();
+            if !protected[s]
+            {
+                break s;
+            }
+        };
+        walls = sides(start, GRID_WIDTH, GRID_SIZE);
+        grid[start] = true;
+    }
+    else 
+    {
+        let temp_copy = walls.clone();
+        for (i, &cell) in temp_copy.iter().enumerate()
+        {
+            walls.remove(i);
+            grid[cell] = true;
+            let neighbours = sides(cell, GRID_WIDTH, GRID_SIZE);
+            for &side in neighbours.iter()
+            {
+                if !protected[side]
+                {
+                    walls.push(side);
+                }
+            }
         }
     }
 
-    let mut walls = if wall_input.is_some() { wall_input.unwrap() } else { sides(start, GRID_WIDTH, GRID_SIZE) };
-
     while !walls.is_empty()
-    {
+    {        
         let idx = gen_range(0, walls.len());
         let cell = walls[idx];
 
@@ -270,24 +290,52 @@ fn create_maze(grid_input: Option<Vec<bool>>, wall_input: Option<Vec<usize>>, th
         {
             let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
 
-            let allow_carve = !protected[cell] || rand::gen_range(0.0, 1.0) < threshold;
-            if allow_carve
-            {
-                grid[cell] = true;
-                grid[unvisited] = true;
+            if protected[unvisited] { walls.remove(idx); continue; }
+            grid[cell] = true;
+            grid[unvisited] = true;
 
-                let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
-                for n in new_neighbours
+            let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
+            for n in new_neighbours
+            {
+                if !walls.contains(&n)
                 {
-                    if !walls.contains(&n)
-                    {
-                        walls.push(n);
-                    }
+                    walls.push(n);
                 }
             }
         }
         walls.remove(idx);
     }
-    
+
     grid
+}
+
+fn expand_protection_zone(protected: &Vec<bool>) -> Vec<bool>
+{
+    let mut expanded = protected.clone();
+    for idx in 0..GRID_SIZE
+    {
+        if !protected[idx] { continue; }
+
+        for n in all_sides(idx, GRID_WIDTH, GRID_SIZE)
+        {
+            expanded[n] = true;
+        }
+    }
+    expanded
+}
+
+fn all_sides(pos: usize, width: usize, max: usize) -> Vec<usize>
+{
+    let mut neighbours = Vec::new();
+
+    let x = pos % width;
+    let y = pos / width;
+    let max_y = max / width;
+
+    if x > 0 { neighbours.push(pos - 1); }
+    if x < width - 1 { neighbours.push(pos + 1); }
+    if y > 0 { neighbours.push(pos - width); }
+    if y < max_y-1 { neighbours.push(pos + width); }
+
+    neighbours
 }

@@ -114,7 +114,7 @@ pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
             }
 
             let cell_pixel_count = (x1 - x0) * (y1 - y0);
-            if white * 4 >= cell_pixel_count 
+            if white * 2 >= cell_pixel_count 
             {
                 grid[gy*GRID_WIDTH + gx] = true;
             }

@@ -63,28 +63,26 @@ async fn main()
             {
                 UiCommand::RegenerateMaze { use_image, threshold } => 
                 {
-                    let (grid, walls) = if use_image == InputImage::Image
+                    let grid = if use_image == InputImage::Image
                     {
-                        let (grid, image) = crate::image::get_grid_from_path(ui.get_path());//get_input_grid(ui.get_path());
-                        let walls = crate::maze::get_all_walls(&grid);
+                        let (grid, image) = crate::image::get_grid_from_path(ui.get_path());
 
                         canvas.set_image(image);
 
-                        (Some(grid), Some(walls))
+                        Some(grid)
                     }
                     else if use_image == InputImage::Drawing
                     {
                         let (grid, _) = crate::image::get_grid_from_image(canvas.get_image());
-                        let walls = crate::maze::get_all_walls(&grid);
 
-                        (Some(grid), Some(walls))
+                        Some(grid)
                     }
                     else 
                     {
-                        (None, None)
+                        None
                     };
                     
-                    maze.regenerate_maze(grid, walls, threshold);
+                    maze.regenerate_maze(grid, threshold);
                 },
                 UiCommand::SwitchState(new_state) => state = new_state,
                 UiCommand::SwitchColor(new_color) => color = new_color,
