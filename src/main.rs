@@ -12,7 +12,7 @@ pub mod canvas;
 
 use crate::canvas::Canvas;
 use crate::constants::window_config;
-use crate::ui::{UI, UiCommand};
+use crate::ui::{InputImage, UI, UiCommand};
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -63,12 +63,19 @@ async fn main()
             {
                 UiCommand::RegenerateMaze { use_image, threshold } => 
                 {
-                    let (grid, walls) = if use_image
+                    let (grid, walls) = if use_image == InputImage::Image
                     {
-                        let (grid, image) = crate::image::get_input_grid(ui.get_path());
+                        let (grid, image) = crate::image::get_grid_from_path(ui.get_path());//get_input_grid(ui.get_path());
                         let walls = crate::maze::get_all_walls(&grid);
 
                         canvas.set_image(image);
+
+                        (Some(grid), Some(walls))
+                    }
+                    else if use_image == InputImage::Drawing
+                    {
+                        let (grid, _) = crate::image::get_grid_from_image(canvas.get_image());
+                        let walls = crate::maze::get_all_walls(&grid);
 
                         (Some(grid), Some(walls))
                     }

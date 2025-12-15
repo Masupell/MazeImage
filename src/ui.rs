@@ -11,7 +11,8 @@ pub struct UI
     visible: bool,
     hovered: bool,
     image_path: String,
-    include_image: bool,
+    // include_image: bool,
+    image: InputImage,
     image_strength: f32, //0.0to1.0
     commands: Vec<UiCommand>
 }
@@ -25,7 +26,8 @@ impl UI
             visible: false,
             hovered: false,
             image_path: String::new(),
-            include_image: false,
+            // include_image: false,
+            image: InputImage::None,
             image_strength: 0.1,
             commands: Vec::new()
         }
@@ -104,6 +106,21 @@ impl UI
                         AppState::Maze => self.maze_ui(ui),
                         AppState::Draw => self.draw_ui(ui, brush_size, smoothing, color),
                     }
+                    
+                    ui.separator();
+
+                    let mut drawing_checked = self.image == InputImage::Drawing;
+                    if ui.checkbox(&mut drawing_checked, "Use Drawing as Input").clicked()
+                    {
+                        if drawing_checked
+                        {
+                            self.image = InputImage::Drawing;
+                        }
+                        else
+                        {
+                            self.image = InputImage::None;
+                        }
+                    }
                 });
             }
         });
@@ -119,7 +136,7 @@ impl UI
         {
             self.commands.push(UiCommand::RegenerateMaze
             {
-                use_image: self.include_image,
+                use_image: self.image,
                 threshold: self.image_strength,
             });
         }
@@ -128,7 +145,18 @@ impl UI
 
         ui.horizontal(|ui|
         {
-            ui.checkbox(&mut self.include_image, "Include Image");
+            let mut image_checked = self.image == InputImage::Image;
+            if ui.checkbox(&mut image_checked, "Include Image").clicked()
+            {
+                if image_checked
+                {
+                    self.image = InputImage::Image;
+                }
+                else
+                {
+                    self.image = InputImage::None;
+                }
+            }
             ui.text_edit_singleline(&mut self.image_path);
 
             if ui.button("Browse").clicked()
@@ -177,6 +205,14 @@ impl UI
 pub enum UiCommand
 {
     SwitchState(AppState),
-    RegenerateMaze { use_image: bool, threshold: f32 },
+    RegenerateMaze { use_image: InputImage, threshold: f32 },
     SwitchColor(Color)
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum InputImage
+{
+    Image,
+    Drawing,
+    None
 }

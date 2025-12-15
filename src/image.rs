@@ -3,23 +3,37 @@ use macroquad::{color::BLACK, texture::Image, window::{screen_height, screen_wid
 
 use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
-pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
+
+pub fn get_grid_from_path(path: &str) -> (Vec<bool>, Image) 
+{
+    let mut input = match image::open(path) 
+    {
+        Ok(img) => img,
+        Err(_) => 
+        {
+            println!("Error\n(Could be wrong path/does not exist");
+            return (vec![false; GRID_SIZE], Image::gen_image_color(16, 16, BLACK));
+        }
+    };
+
+    input = input.blur(5.0);
+    input.to_luma8();
+    let output = sobel(&input, 0.05);
+    let macroquad_image = luma_to_macroquad_image(&output);
+
+    get_input_grid(&macroquad_image)
+}
+
+pub fn get_grid_from_image(image: Image) -> (Vec<bool>, Image) 
+{
+    get_input_grid(&image)
+}
+
+pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
 {
     let mut grid = vec![false; GRID_SIZE];
 
-    let input = image::open(path);
-    if input.is_err()
-    {
-        println!("Error\n(Could be wrong path/does not exist");
-        return (grid, Image::gen_image_color(16, 16, BLACK));
-    }
-    let mut image = input.unwrap();
-    image = image.blur(5.0);
-    image.to_luma8();
-
-    let output = sobel(&image, 0.05);
-    // let macroquad_image = luma_to_macroquad_image(&output);
-    let src = luma_to_macroquad_image(&output);
+    let src = input;
 
     let target_width = screen_width() as u16;
     let target_height = screen_height() as u16;
@@ -36,9 +50,7 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
             let tx = x as i32 + off_x;
             let ty = y as i32 + off_y;
 
-            if tx >= 0 && ty >= 0 &&
-            tx < target_width as i32 &&
-            ty < target_height as i32
+            if tx >= 0 && ty >= 0 && tx < target_width as i32 && ty < target_height as i32
             {
                 let color = src.get_pixel(x, y);
                 extended.set_pixel(tx as u32, ty as u32, color);
@@ -47,8 +59,8 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
     }
     let macroquad_image = extended;
 
-    let image_width = output.width() as usize;
-    let image_height = output.height() as usize;
+    let image_width = src.width() as usize;
+    let image_height = src.height() as usize;
 
     let image_aspect = image_width as f32 / image_height as f32;
     let grid_aspect = GRID_WIDTH as f32 / GRID_HEIGHT as f32;
@@ -84,8 +96,8 @@ pub fn get_input_grid(path: &str) -> (Vec<bool>, Image)
             {
                 for x in x0..x1 
                 {
-                    let pixel = output.get_pixel(x as u32, y as u32);
-                    if pixel[0] == 255 { white += 1; }
+                    let pixel = src.get_pixel(x as u32, y as u32);
+                    if pixel.r == 1.0 { white += 1; }
                 }
             }
 

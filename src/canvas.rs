@@ -32,6 +32,11 @@ impl Canvas
         self.smooth_pos = vec2(0.0, 0.0);
     }
 
+    pub fn get_image(&self) -> Image
+    {
+        self.canvas.clone()
+    }
+
     pub fn update(&mut self, block_input: bool, brush_size: f32, smoothing: f32, color: Color) 
     {
         if block_input { return; }
