@@ -290,7 +290,7 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
         {
             let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
 
-            if protected[unvisited] { walls.remove(idx); continue; }
+            if protected[unvisited] && gen_range(0.0, 1.0) >= threshold * 1.0 { walls.remove(idx); continue; }
             grid[cell] = true;
             grid[unvisited] = true;
 
