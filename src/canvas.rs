@@ -1,4 +1,6 @@
-use macroquad::prelude::*;
+use macroquad::{miniquad::window::screen_size, prelude::*};
+
+use crate::constants::{GRID_HEIGHT, GRID_WIDTH};
 
 pub struct Canvas
 {
@@ -6,6 +8,7 @@ pub struct Canvas
     pub texture: Texture2D,
     last_pos: Option<Vec2>,
     smooth_pos: Vec2,
+    show_grid: bool
 }
 
 impl Canvas 
@@ -21,6 +24,7 @@ impl Canvas
             texture,
             last_pos: None,
             smooth_pos: vec2(0.0, 0.0),
+            show_grid: false
         }
     }
 
@@ -35,6 +39,16 @@ impl Canvas
     pub fn get_image(&self) -> Image
     {
         self.canvas.clone()
+    }
+
+    pub fn draw(&self)
+    {
+        draw_texture_ex(&self.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(self.get_size()), ..Default::default() });
+
+        if self.show_grid
+        {
+            self.draw_grid();
+        }
     }
 
     pub fn update(&mut self, block_input: bool, brush_size: f32, smoothing: f32, color: Color) 
@@ -103,5 +117,32 @@ impl Canvas
                 }
             }
         }
+    }
+
+    fn draw_grid(&self)
+    {
+        let (width, height) = screen_size();
+        
+        let cell_width = width / GRID_WIDTH as f32;
+        let cell_height = height / GRID_HEIGHT as f32;
+
+        let color = Color::new(1.0, 1.0, 1.0, 0.25);
+
+        for x in 0..=GRID_WIDTH
+        {
+            let px = x as f32 * cell_width;
+            draw_line(px, 0.0, px, height, 1.0, color); // macroquads draw line
+        }
+
+        for y in 0..=GRID_HEIGHT
+        {
+            let py = y as f32 * cell_height;
+            draw_line(0.0, py, width, py, 1.0, color);
+        }
+    }
+
+    pub fn show_grid(&mut self, show: bool)
+    {
+        self.show_grid = show;
     }
 }

@@ -46,7 +46,7 @@ async fn main()
             AppState::Draw =>
             {
                 canvas.update(block_input, brush_size, smoothing, color);
-                draw_texture_ex(&canvas.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(canvas.get_size()), ..Default::default() });
+                canvas.draw();
             },
             AppState::Maze =>
             {
@@ -87,7 +87,8 @@ async fn main()
                     maze.regenerate_maze(grid, walls, threshold);
                 },
                 UiCommand::SwitchState(new_state) => state = new_state,
-                UiCommand::SwitchColor(new_color) => color = new_color
+                UiCommand::SwitchColor(new_color) => color = new_color,
+                UiCommand::ShowGrid(show) => canvas.show_grid(show),
             }
         }
 

@@ -11,10 +11,10 @@ pub struct UI
     visible: bool,
     hovered: bool,
     image_path: String,
-    // include_image: bool,
     image: InputImage,
     image_strength: f32, //0.0to1.0
-    commands: Vec<UiCommand>
+    commands: Vec<UiCommand>,
+    show_grid: bool
 }
 
 impl UI
@@ -26,10 +26,10 @@ impl UI
             visible: false,
             hovered: false,
             image_path: String::new(),
-            // include_image: false,
             image: InputImage::None,
             image_strength: 0.1,
-            commands: Vec::new()
+            commands: Vec::new(),
+            show_grid: false
         }
     }
 
@@ -189,6 +189,10 @@ impl UI
         });
         ui.add(egui::Slider::new(brush_size, 1.0..=50.0).text("Brush Size"));
         ui.add(egui::Slider::new(smoothing, 0.005..=1.0).text("Smoothing"));
+        if ui.checkbox(&mut self.show_grid, "Toggle Grid").clicked()
+        {
+            self.commands.push(UiCommand::ShowGrid(self.show_grid));
+        }
     }
 
     pub fn drain_commands(&mut self) -> Vec<UiCommand>
@@ -206,7 +210,8 @@ pub enum UiCommand
 {
     SwitchState(AppState),
     RegenerateMaze { use_image: InputImage, threshold: f32 },
-    SwitchColor(Color)
+    SwitchColor(Color),
+    ShowGrid(bool)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
