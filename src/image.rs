@@ -1,5 +1,5 @@
 use image::{DynamicImage, GrayImage, ImageBuffer, Luma};
-use macroquad::{color::BLACK, texture::Image, window::{screen_height, screen_width}};
+use macroquad::{color::BLACK, texture::Image};
 
 use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
 
@@ -35,26 +35,38 @@ pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
 
     let src = input;
 
-    let target_width = screen_width() as u16;
-    let target_height = screen_height() as u16;
+    let input_width = src.width() as u32;
+    let input_height = src.height() as u32;
 
-    let mut extended = Image::gen_image_color(target_width, target_height, BLACK);
+    let input_aspect = input_width as f32 / input_height as f32;
+    let target_aspect = GRID_WIDTH as f32 / GRID_HEIGHT as f32;
 
-    let off_x = (target_width as i32 - src.width as i32) / 2;
-    let off_y = (target_height as i32 - src.height as i32) / 2;
-
-    for y in 0..src.height as u32
+    let (extended_width, extended_height, offset_x, offset_y) = if input_aspect > target_aspect
     {
-        for x in 0..src.width as u32
-        {
-            let tx = x as i32 + off_x;
-            let ty = y as i32 + off_y;
+        let new_height = (input_width as f32 / target_aspect).round() as u32;
+        let pad_y = ((new_height - input_height) / 2) as i32;
+        (input_width, new_height, 0, pad_y)
+    }
+    else if input_aspect < target_aspect
+    {
+        let new_width = (input_height as f32 * target_aspect).round() as u32;
+        let pad_x = ((new_width - input_width) / 2) as i32;
+        (new_width, input_height, pad_x, 0)
+    }
+    else
+    {
+        (input_width, input_height, 0, 0)
+    };
 
-            if tx >= 0 && ty >= 0 && tx < target_width as i32 && ty < target_height as i32
-            {
-                let color = src.get_pixel(x, y);
-                extended.set_pixel(tx as u32, ty as u32, color);
-            }
+    let mut extended = Image::gen_image_color(extended_width as u16, extended_height as u16, BLACK);
+
+    for y in 0..input_height 
+    {
+        for x in 0..input_width 
+        {
+            let tx = x as i32 + offset_x;
+            let ty = y as i32 + offset_y;
+            extended.set_pixel(tx as u32, ty as u32, src.get_pixel(x, y));
         }
     }
     let macroquad_image = extended;
