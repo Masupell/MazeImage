@@ -56,6 +56,7 @@ async fn main()
         }
 
         block_input = ui.draw(&state, &mut brush_size, &mut smoothing, color);
+        ui.update();
 
         for command in ui.drain_commands()
         {

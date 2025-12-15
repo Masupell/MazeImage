@@ -35,6 +35,14 @@ impl UI
         }
     }
 
+    pub fn update(&mut self)
+    {
+        if is_key_released(KeyCode::Tab)
+        {
+            self.visible = !self.visible;
+        }
+    }
+
     pub fn draw(&mut self, state: &AppState, brush_size: &mut f32, smoothing: &mut f32, color: Color) -> bool
     {
         let mut block_input = false;
