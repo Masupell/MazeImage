@@ -1,4 +1,4 @@
-use macroquad::{miniquad::window::screen_size, prelude::*};
+use macroquad::prelude::*;
 
 use crate::constants::{GRID_HEIGHT, GRID_WIDTH};
 
@@ -8,7 +8,9 @@ pub struct Canvas
     pub texture: Texture2D,
     last_pos: Option<Vec2>,
     smooth_pos: Vec2,
-    show_grid: bool
+    show_grid: bool,
+    zoom: f32,
+    offset: Vec2
 }
 
 impl Canvas 
@@ -24,7 +26,9 @@ impl Canvas
             texture,
             last_pos: None,
             smooth_pos: vec2(0.0, 0.0),
-            show_grid: false
+            show_grid: false,
+            zoom: 1.0,
+            offset: vec2(0.0, 0.0)
         }
     }
 
@@ -43,7 +47,7 @@ impl Canvas
 
     pub fn draw(&self)
     {
-        draw_texture_ex(&self.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(self.get_size()), ..Default::default() });
+        draw_texture_ex(&self.texture, -self.offset.x * self.zoom, -self.offset.y * self.zoom, WHITE, DrawTextureParams { dest_size: Some(self.get_size()*self.zoom), ..Default::default() });
 
         if self.show_grid
         {
@@ -55,7 +59,20 @@ impl Canvas
     {
         if block_input { return; }
 
-        let mouse = vec2(mouse_position().0, mouse_position().1);
+        let mouse_screen = vec2(mouse_position().0, mouse_position().1);
+        let mouse = self.screen_to_canvas(mouse_screen);
+        let scroll = mouse_wheel().1;
+
+        if scroll != 0.0
+        {
+            let zoom_factor = 1.1_f32.powf(scroll);
+            let old_zoom = self.zoom;
+            self.zoom = (self.zoom * zoom_factor).clamp(0.1, 20.0);
+
+            let before = self.offset + mouse_screen / old_zoom;
+            let after = self.offset + mouse_screen / self.zoom;
+            self.offset += before - after;
+        }
 
         if is_mouse_button_down(MouseButton::Left) 
         {
@@ -70,13 +87,13 @@ impl Canvas
                 self.draw_line(last, self.smooth_pos, brush_size, color);
             }
             self.last_pos = Some(self.smooth_pos);
+
+            self.texture.update(&self.canvas); // Only need to update when mouse is down (probably only even when draw_line is called)
         }
         else
         {
             self.last_pos = None;
         }
-
-        self.texture.update(&self.canvas);
     }
 
     pub fn get_size(&self) -> Vec2
@@ -121,7 +138,7 @@ impl Canvas
 
     fn draw_grid(&self)
     {
-        let (width, height) = screen_size();
+        let (width, height) = (self.canvas.width() as f32, self.canvas.height() as f32);//screen_size();
         
         let cell_width = width / GRID_WIDTH as f32;
         let cell_height = height / GRID_HEIGHT as f32;
@@ -130,15 +147,22 @@ impl Canvas
 
         for x in 0..=GRID_WIDTH
         {
-            let px = x as f32 * cell_width;
-            draw_line(px, 0.0, px, height, 1.0, color); // macroquads draw line
+            let x_canvas = x as f32 * cell_width;
+            let x_screen = (x_canvas - self.offset.x) * self.zoom;
+            draw_line(x_screen, -self.offset.y * self.zoom, x_screen, (height as f32 - self.offset.y) * self.zoom, 1.0, color); // macroquads draw line
         }
 
         for y in 0..=GRID_HEIGHT
         {
-            let py = y as f32 * cell_height;
-            draw_line(0.0, py, width, py, 1.0, color);
+            let y_canvas = y as f32 * cell_height;
+            let y_screen = (y_canvas - self.offset.y) * self.zoom;
+            draw_line(-self.offset.x * self.zoom, y_screen, (width as f32 - self.offset.x) * self.zoom, y_screen, 1.0, color);
         }
+    }
+
+    fn screen_to_canvas(&self, screen: Vec2) -> Vec2
+    {
+        self.offset + screen / self.zoom
     }
 
     pub fn show_grid(&mut self, show: bool)
