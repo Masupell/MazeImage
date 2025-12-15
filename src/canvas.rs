@@ -10,7 +10,8 @@ pub struct Canvas
     smooth_pos: Vec2,
     show_grid: bool,
     zoom: f32,
-    offset: Vec2
+    offset: Vec2,
+    pan_last: Option<Vec2>
 }
 
 impl Canvas 
@@ -28,7 +29,8 @@ impl Canvas
             smooth_pos: vec2(0.0, 0.0),
             show_grid: false,
             zoom: 1.0,
-            offset: vec2(0.0, 0.0)
+            offset: vec2(0.0, 0.0),
+            pan_last: None
         }
     }
 
@@ -74,6 +76,23 @@ impl Canvas
             self.offset += before - after;
         }
 
+        if is_mouse_button_down(MouseButton::Middle)
+        {
+            if let Some(last) = self.pan_last
+            {
+                let delta_screen = mouse_screen - last;
+                let delta_canvas = delta_screen / self.zoom;
+
+                self.offset -= delta_canvas; // no clamping yet, so can get lost
+            }
+
+            self.pan_last = Some(mouse_screen);
+        }
+        else
+        {
+            self.pan_last = None;
+        }
+
         if is_mouse_button_down(MouseButton::Left) 
         {
             if self.last_pos.is_none()
@@ -85,10 +104,9 @@ impl Canvas
             if let Some(last) = self.last_pos
             {
                 self.draw_line(last, self.smooth_pos, brush_size, color);
+                self.texture.update(&self.canvas);
             }
             self.last_pos = Some(self.smooth_pos);
-
-            self.texture.update(&self.canvas); // Only need to update when mouse is down (probably only even when draw_line is called)
         }
         else
         {
