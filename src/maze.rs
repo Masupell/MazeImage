@@ -6,7 +6,7 @@ use crate::{constants::*, solver::Solver};
 
 pub struct Maze
 {
-    pub grid: Vec<bool>,
+    pub grid: Vec<Cell>,//Vec<bool>,
     pub solver: Solver,
     pub start: usize,
     pub end: usize,
@@ -18,7 +18,7 @@ impl Maze
 
     pub fn new() -> Self
     {
-        let grid = create_maze(None, 0.1);
+        let grid = create_maze_2(None, 0.1);//create_maze(None, 0.1);
 
         Maze
         {
@@ -46,15 +46,43 @@ impl Maze
 
     fn draw_maze(&self)
     {
-        let cell_size = CELL_SIZE as f32;
+        // let cell_size = CELL_SIZE as f32;
 
-        for (i, draw) in self.grid.iter().enumerate()
+        // for (i, draw) in self.grid.iter().enumerate()
+        // {
+        //     if !draw { continue; }
+
+        //     let x = (i % GRID_WIDTH) as f32 * cell_size;
+        //     let y = (i / GRID_WIDTH) as f32 * cell_size;
+        //     draw_rectangle(x, y, cell_size, cell_size, Color::new(0.8, 0.8, 0.8, 1.0));
+        // }
+
+        let cell_size: f32 = 20.0;
+        let wall_thickness: f32 = 2.0;
+
+        for (i, cell) in self.grid.iter().enumerate()
         {
-            if !draw { continue; }
+            let x_idx = i % 50;
+            let y_idx = i / 50;
+            let x = x_idx as f32 * cell_size;
+            let y = y_idx as f32 * cell_size;
 
-            let x = (i % GRID_WIDTH) as f32 * cell_size;
-            let y = (i / GRID_WIDTH) as f32 * cell_size;
-            draw_rectangle(x, y, cell_size, cell_size, Color::new(0.8, 0.8, 0.8, 1.0));
+            if cell.up
+            {
+                draw_line(x, y, x + cell_size, y, wall_thickness, WHITE);
+            }
+            if cell.down
+            {
+                draw_line(x, y + cell_size, x + cell_size, y + cell_size, wall_thickness, WHITE);
+            }
+            if cell.left
+            {
+                draw_line(x, y, x, y + cell_size, wall_thickness, WHITE);
+            }
+            if cell.right
+            {
+                draw_line(x + cell_size, y, x + cell_size, y + cell_size, wall_thickness, WHITE);
+            }
         }
     }
 
@@ -90,7 +118,7 @@ impl Maze
             let y = (pos.1/CELL_SIZE as f32) as usize;
             let i = y*GRID_WIDTH+x;
 
-            self.grid[i] = !self.grid[i];
+            // self.grid[i] = !self.grid[i];
         }
 
         if is_key_released(KeyCode::Enter)
@@ -103,19 +131,19 @@ impl Maze
 
     fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration)
     {
-        if timer.elapsed() >= *time_stop && self.started
-        {
-            if !self.solver.found
-            {
-                self.solver.step(&self.grid);
-            }
-            else 
-            {
-                self.solver.reconstruction_step();
-            }
+        // if timer.elapsed() >= *time_stop && self.started
+        // {
+        //     if !self.solver.found
+        //     {
+        //         self.solver.step(&self.grid);
+        //     }
+        //     else 
+        //     {
+        //         self.solver.reconstruction_step();
+        //     }
             
-            *timer = Instant::now();
-        }
+        //     *timer = Instant::now();
+        // }
     }
 
     fn draw_solver(&self)
@@ -158,7 +186,7 @@ impl Maze
 
     pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32)
     {
-        self.grid = create_maze(grid_input, threshold);
+        // self.grid = create_maze(grid_input, threshold);
     }
 }
 
@@ -409,4 +437,122 @@ fn all_sides(pos: usize, width: usize, max: usize) -> Vec<usize>
     if y < max_y-1 { neighbours.push(pos + width); }
 
     neighbours
+}
+
+
+#[derive(Clone)]
+struct Cell
+{
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool
+}
+
+impl Cell
+{
+    fn new() -> Self
+    {
+        Cell { up: true, down: true, left: true, right: true }
+    }
+
+    fn set_wall(&mut self, dir: &Dir, value: bool)
+    {
+        match dir
+        {
+            Dir::Up => self.up = value,
+            Dir::Down => self.down = value,
+            Dir::Left => self.left = value,
+            Dir::Right => self.right = value,
+        }
+    }
+}
+
+fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<Cell>
+{
+    let grid_width = 50;
+    
+    let mut grid = vec![Cell::new(); grid_width*grid_width];
+    let mut visited = vec![false; grid_width*grid_width];
+
+    let mut frontier_set: HashSet<(usize, Dir)> = HashSet::new();
+    let mut frontier_vec: Vec<(usize, Dir)> = Vec::new();
+
+    let start = random_start_2(grid_width, grid_width);
+    visited[start] = true;
+    for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+    {
+        frontier_vec.push((start, dir));
+        frontier_set.insert((start, dir));
+    }
+
+    while !frontier_vec.is_empty()
+    {
+        let idx = gen_range(0, frontier_vec.len());
+        let (cell, dir) = frontier_vec.swap_remove(idx);
+        frontier_set.remove(&(cell, dir));
+
+        let temp = neighbour(cell, &dir, grid_width, grid_width*grid_width);
+        let neighbour = if temp.is_some()
+        {
+            temp.unwrap()
+        }
+        else { continue; };
+
+        if visited[cell] != visited[neighbour]
+        {
+            // Input path checking here, later
+
+            grid[cell].set_wall(&dir, false);
+            grid[neighbour].set_wall(&opposite(&dir), false);
+            visited[neighbour] = true;
+
+            for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+            {
+                if frontier_set.insert((neighbour, dir))
+                {
+                    frontier_vec.push((neighbour, dir));
+                }
+            }
+        }
+    }
+
+    grid
+}
+
+#[derive(Eq, Hash, PartialEq, Copy, Clone)]
+enum Dir { Up, Down, Left, Right}
+
+fn random_start_2(width: usize, height: usize) -> usize
+{
+    let x = gen_range(0, width);
+    let y = gen_range(0, height);
+
+    y * width + x
+}
+
+fn neighbour(pos: usize, dir: &Dir, width: usize, max: usize) -> Option<usize>
+{
+    let x = pos % width;
+    let y = pos / width;
+    let max_y = max / width;
+
+    match dir
+    {
+        Dir::Up => if y > 0 { Some(pos-width) } else { None },
+        Dir::Down => if y+1 < max_y { Some(pos+width) } else { None },
+        Dir::Left => if x > 0 { Some(pos-1) } else { None },
+        Dir::Right => if x+1 < width { Some(pos+1) } else { None },
+    }
+}
+
+fn opposite(dir: &Dir) -> Dir
+{
+    match dir
+    {
+        Dir::Up => Dir::Down,
+        Dir::Down => Dir::Up,
+        Dir::Left => Dir::Right,
+        Dir::Right => Dir::Left,
+    }
 }
