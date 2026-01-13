@@ -216,7 +216,7 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
     
     let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
 
-    let mut regions: Vec<usize> = vec![0; GRID_SIZE];
+    let mut regions: Vec<usize> = vec![0; GRID_SIZE]; // Region 0 is no region
     let mut next_region_id: usize = 1;
     
     for (idx, &input) in grid.iter().enumerate()
@@ -298,9 +298,29 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
             {
                 let connected_cells = flood_fill_connected(visited, &grid, &protected, GRID_WIDTH, GRID_SIZE);
 
-                let has_region = connected_cells.iter().any(|&c| regions[c] != 0);
+                // let has_region = connected_cells.iter().any(|&c| regions[c] != 0);
 
-                if has_region
+                let mut region_id = 0;
+                let mut connects_to_region = false;
+
+                for &c in &connected_cells
+                {
+                    let r = regions[c];
+                    if r != 0
+                    {
+                        if region_id == 0
+                        {
+                            region_id = r;
+                        }
+                        else if region_id != r
+                        {
+                            connects_to_region = true;
+                            break;
+                        }
+                    }
+                }
+
+                if connects_to_region//has_region
                 {
                     walls.remove(idx);
                     continue;
