@@ -215,6 +215,9 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
     let mut protected = vec![false; GRID_SIZE];
     
     let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
+
+    let mut regions: Vec<usize> = vec![0; GRID_SIZE];
+    let mut next_region_id: usize = 1;
     
     for (idx, &input) in grid.iter().enumerate()
     {
@@ -288,9 +291,27 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
 
         if cell_one != cell_two // If only one is true (visited)
         {
-            let unvisited = if cell_one { cell_two_idx } else { cell_one_idx };
+            let (visited, unvisited) = if cell_one { (cell_one_idx, cell_two_idx) } else { (cell_two_idx, cell_one_idx) };
 
-            if protected[unvisited] && gen_range(0.0, 1.0) >= threshold * 1.0 { walls.remove(idx); continue; }
+            //Checks if it is connected to another region, if not: Adds cell-idx to new region
+            if protected[unvisited]
+            {
+                let connected_cells = flood_fill_connected(visited, &grid, &protected, GRID_WIDTH, GRID_SIZE);
+
+                let has_region = connected_cells.iter().any(|&c| regions[c] != 0);
+
+                if has_region
+                {
+                    walls.remove(idx);
+                    continue;
+                }
+
+                for &c in connected_cells.iter()
+                {
+                    regions[c] = next_region_id;
+                }
+                next_region_id += 1;
+            }
             grid[cell] = true;
             grid[unvisited] = true;
 
@@ -307,6 +328,36 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
     }
 
     grid
+}
+
+// Flood Search, like the solver does currently
+fn flood_fill_connected(start_cell: usize, grid: &Vec<bool>, protected: &Vec<bool>, grid_width: usize, grid_size: usize) -> Vec<usize>
+{
+    let mut connected = Vec::new();
+    let mut visited = vec![false; grid_size];
+    let mut stack = vec![start_cell];
+    
+    while let Some(cell) = stack.pop()
+    {
+        if visited[cell] || !grid[cell] || protected[cell]
+        {
+            continue;
+        }
+
+        visited[cell] = true;
+        connected.push(cell);
+
+        let neighbours = all_sides(cell, grid_width, grid_size);
+        for &neighbour in neighbours.iter()
+        {
+            if !visited[neighbour] && grid[neighbour] &&!protected[neighbour]
+            {
+                stack.push(neighbour);
+            }
+        }
+    }
+
+    connected
 }
 
 fn expand_protection_zone(protected: &Vec<bool>) -> Vec<bool>
