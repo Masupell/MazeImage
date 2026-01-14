@@ -1,4 +1,4 @@
-use std::{collections::HashSet, time::{Duration, Instant}};
+use std::{collections::{HashSet, VecDeque}, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
@@ -230,6 +230,17 @@ impl Cell
             Dir::Right => self.right = value,
         }
     }
+
+    fn has_wall(&self, dir: &Dir) -> bool
+    {
+        match dir
+        {
+            Dir::Up => self.up,
+            Dir::Down => self.down,
+            Dir::Left => self.left,
+            Dir::Right => self.right,
+        }
+    }
 }
 
 fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
@@ -300,8 +311,179 @@ fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &Grid
         }
     }
 
+
+    //Non Path wall removal
+    // First checks all ppaths and picks the longest one,
+    // then it checks if the path ahs two ends,
+    // And then checks, that there are no shortcuts
+    // Mostly Works, but not all the time, no idea why
+    let all_paths = find_path_component(&path, grid_width, grid_size);
+    let mut max_lenght = 0;
+    let mut path_id = -1;
+    for (i, part) in all_paths.iter().enumerate()
+    {
+        if part.len() > max_lenght
+        {
+            max_lenght = part.len();
+            path_id = i as i32;
+        }
+    }
+    if path_id != -1
+    {
+        let main_path = all_paths[path_id as usize].clone();
+        if let Some((start, end)) = path_ends(&main_path, grid_width, grid_size) // Start End not needed anymore
+        {
+            let main_path_set: HashSet<_> = main_path.iter().cloned().collect();
+
+            for &cell in main_path.iter()
+            {
+                for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+                {
+                    if grid[cell].has_wall(&dir) { continue; }
+                    
+                    if let Some(neighbour) = neighbour(cell, &dir, grid_width, grid_size)
+                    {
+                        if !main_path_set.contains(&neighbour)
+                        {
+                            if can_reach_main_path_via_shortcut(neighbour, &main_path_set, cell, &grid, grid_width, grid_size)
+                            {
+                                grid[cell].set_wall(&dir, true);
+                                grid[neighbour].set_wall(&opposite(&dir), true);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     grid
 }
+
+
+fn can_reach_main_path_via_shortcut(start: usize, main_path: &HashSet<usize>, entry_point: usize, grid: &Vec<Cell>, grid_width: usize, grid_size: usize) -> bool
+{
+    let mut visited = vec![false; grid_size];
+    let mut queue = VecDeque::new();
+    
+    queue.push_back(start);
+    visited[start] = true;
+    
+    while let Some(cell) = queue.pop_front()
+    {
+        for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+        {
+            if grid[cell].has_wall(&dir) { continue; }
+            
+            if let Some(neighbour) = neighbour(cell, &dir, grid_width, grid_size)
+            {
+                if main_path.contains(&neighbour) && neighbour != entry_point // Shortcut
+                {
+                    return true;
+                }
+                
+                if main_path.contains(&neighbour) { continue; }
+                
+                if !visited[neighbour]
+                {
+                    visited[neighbour] = true;
+                    queue.push_back(neighbour);
+                }
+            }
+        }
+    }
+    false
+}
+
+
+
+// Flood Search, to get all paths, if there are multiple (so it works not with only one path)
+fn find_path_component(path: &Vec<bool>, grid_width: usize, grid_size: usize) -> Vec<Vec<usize>>
+{
+    let mut visited = vec![false; grid_size];
+    let mut paths = Vec::new();
+
+    for idx in 0..grid_size
+    {
+        if !path[idx] || visited[idx] { continue; }
+
+        // Individual Path, flood search to get each one
+        let mut component = Vec::new();
+        let mut stack = vec![idx];
+        visited[idx] = true;
+
+        while let Some(cell) = stack.pop()
+        {
+            component.push(cell);
+
+            for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+            {
+                if let Some(neighbour) = neighbour(cell, &dir, grid_width, grid_size)
+                {
+                    if path[neighbour] && !visited[neighbour]
+                    {
+                        visited[neighbour] = true;
+                        stack.push(neighbour);
+                    }
+                }
+            }
+        }
+        paths.push(component);
+    }
+
+    paths
+}
+
+// Gets the two end-points of a path, will return None for anything that has not two (like a point with 1, or a circle with none, or a tree with multiple ends)
+fn path_ends(path: &Vec<usize>, grid_width: usize, grid_size: usize) -> Option<(usize, usize)>
+{
+    let mut ends = Vec::new();
+    let path_set: HashSet<_> = path.iter().cloned().collect();
+    
+    for &cell in path.iter()
+    {
+        let mut neighbour_amount = 0;
+        for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+        {
+            if let Some(neighbour) = neighbour(cell, &dir, grid_width, grid_size)
+            {
+                if path_set.contains(&neighbour)
+                {
+                    neighbour_amount += 1;
+                }
+            }
+        }
+
+        if neighbour_amount == 1
+        {
+            ends.push(cell);
+        }
+    }
+
+    if ends.len() == 2
+    {
+        return Some((ends[0], ends[1]));
+    }
+    None
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Eq, Hash, PartialEq, Copy, Clone)]
 pub enum Dir { Up, Down, Left, Right}
