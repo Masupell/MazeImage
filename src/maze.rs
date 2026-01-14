@@ -42,52 +42,13 @@ impl Maze
 
     pub fn draw(&self, grid_config: &GridConfig)
     {
-        // self.draw_solver(grid_config);
+        self.draw_solver(grid_config);
         self.draw_ends(grid_config);
         self.draw_maze();
     }
 
     fn draw_maze(&self)
     {
-        // let cell_size = CELL_SIZE as f32;
-
-        // for (i, draw) in self.grid.iter().enumerate()
-        // {
-        //     if !draw { continue; }
-
-        //     let x = (i % GRID_WIDTH) as f32 * cell_size;
-        //     let y = (i / GRID_WIDTH) as f32 * cell_size;
-        //     draw_rectangle(x, y, cell_size, cell_size, Color::new(0.8, 0.8, 0.8, 1.0));
-        // }
-
-        // let cell_size: f32 = 20.0;
-        // let wall_thickness: f32 = 2.0;
-
-        // for (i, cell) in self.grid.iter().enumerate()
-        // {
-        //     let x_idx = i % 50;
-        //     let y_idx = i / 50;
-        //     let x = x_idx as f32 * cell_size;
-        //     let y = y_idx as f32 * cell_size;
-
-        //     if cell.up
-        //     {
-        //         draw_line(x, y, x + cell_size, y, wall_thickness, WHITE);
-        //     }
-        //     if cell.down
-        //     {
-        //         draw_line(x, y + cell_size, x + cell_size, y + cell_size, wall_thickness, WHITE);
-        //     }
-        //     if cell.left
-        //     {
-        //         draw_line(x, y, x, y + cell_size, wall_thickness, WHITE);
-        //     }
-        //     if cell.right
-        //     {
-        //         draw_line(x + cell_size, y, x + cell_size, y + cell_size, wall_thickness, WHITE);
-        //     }
-        // }
-
         for line in self.lines.iter()
         {
             draw_line(line.x0, line.y0, line.x1, line.y1, 2.0, WHITE);
@@ -130,19 +91,19 @@ impl Maze
 
     fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration, grid_config: &GridConfig)
     {
-        // if timer.elapsed() >= *time_stop && self.started
-        // {
-        //     if !self.solver.found
-        //     {
-        //         self.solver.step(&self.grid);
-        //     }
-        //     else 
-        //     {
-        //         self.solver.reconstruction_step();
-        //     }
+        if timer.elapsed() >= *time_stop && self.started
+        {
+            if !self.solver.found
+            {
+                self.solver.step(&self.grid, grid_config);
+            }
+            else
+            {
+                self.solver.reconstruction_step();
+            }
             
-        //     *timer = Instant::now();
-        // }
+            *timer = Instant::now();
+        }
     }
 
     fn draw_solver(&self, grid_config: &GridConfig)
@@ -156,8 +117,8 @@ impl Maze
             {
                 if self.solver.visited[i]
                 {
-                    let x = (i % grid_width) as f32 * cell_size;
-                    let y = (i / grid_width) as f32 * cell_size;
+                    let x = (i % grid_width) as f32 * cell_size + grid_config.offset.0;
+                    let y = (i / grid_width) as f32 * cell_size + grid_config.offset.1;
                     draw_rectangle(x, y, cell_size, cell_size, Color::new(0.4, 0.8, 0.4, 1.0));
                 }
             }
@@ -165,8 +126,8 @@ impl Maze
 
         for i in self.solver.final_path.iter()
         {
-            let x = (i % grid_width) as f32 * cell_size;
-            let y = (i / grid_width) as f32 * cell_size;
+            let x = (i % grid_width) as f32 * cell_size + grid_config.offset.0;
+            let y = (i / grid_width) as f32 * cell_size + grid_config.offset.1;
             draw_rectangle(x, y, cell_size, cell_size, Color::new(0.4, 0.4, 0.8, 1.0));
         }
     }
@@ -187,7 +148,7 @@ impl Maze
 
     pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig)
     {
-        // self.grid = create_maze(grid_input, threshold);
+        self.grid = create_maze_2(grid_input, threshold, grid_config);
     }
 }
 
@@ -470,10 +431,10 @@ fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
 #[derive(Clone)]
 pub struct Cell
 {
-    up: bool,
-    down: bool,
-    left: bool,
-    right: bool
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool
 }
 
 impl Cell
@@ -550,7 +511,7 @@ fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &Gr
 }
 
 #[derive(Eq, Hash, PartialEq, Copy, Clone)]
-enum Dir { Up, Down, Left, Right}
+pub enum Dir { Up, Down, Left, Right}
 
 fn random_start_2(width: usize, height: usize) -> usize
 {

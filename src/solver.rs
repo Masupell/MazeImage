@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::GridConfig;
+use crate::{GridConfig, maze::Cell};
 
 pub struct Solver // Quite inefficient
 {
@@ -39,7 +39,7 @@ impl Solver
         }
     }
 
-    pub fn step(&mut self, grid: &Vec<bool>, grid_config: &GridConfig)
+    pub fn step(&mut self, grid: &Vec<Cell>, grid_config: &GridConfig)
     {
         // if self.found { return; }
 
@@ -47,7 +47,7 @@ impl Solver
         if cell_option.is_none() { self.found = true; self.finished = true; println!("Error?"); return; }
         let cell = cell_option.unwrap();
 
-        let neighbours = solver_sides(cell, grid_config.grid_width, grid_config.grid_height, grid);//sides(cell, GRID_WIDTH, GRID_SIZE);
+        let neighbours = solver_sides(cell, grid_config.grid_width, grid_config.grid_height, grid);
         let viable: Vec<usize> = neighbours.into_iter().filter(|pos| !self.visited[*pos]).collect(); // All not yet visited cells
         for i in viable
         {
@@ -89,16 +89,17 @@ impl Solver
     }
 }
 
-fn solver_sides(pos: usize, width: usize, height: usize, grid: &Vec<bool>) -> Vec<usize> 
+fn solver_sides(pos: usize, width: usize, height: usize, grid: &Vec<Cell>) -> Vec<usize>
 {
     let mut neighbours = Vec::new();
     let x = pos % width;
     let y = pos / width;
+    let cell = &grid[pos];
 
-    if x > 0 && grid[pos - 1] { neighbours.push(pos - 1); }
-    if x + 1 < width && grid[pos + 1] { neighbours.push(pos + 1); }
-    if y > 0 && grid[pos - width] { neighbours.push(pos - width); }
-    if y + 1 < height && grid[pos + width] { neighbours.push(pos + width); }
+    if x > 0 && !cell.left { neighbours.push(pos - 1); }
+    if x + 1 < width && !cell.right { neighbours.push(pos + 1); }
+    if y > 0 && !cell.up { neighbours.push(pos - width); }
+    if y + 1 < height && !cell.down { neighbours.push(pos + width); }
 
     neighbours
 }
