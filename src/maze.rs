@@ -2,7 +2,7 @@ use std::{collections::HashSet, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
 
-use crate::{constants::*, solver::Solver};
+use crate::{GridConfig, constants::*, solver::Solver};
 
 pub struct Maze
 {
@@ -17,10 +17,10 @@ pub struct Maze
 impl Maze
 {
 
-    pub fn new() -> Self
+    pub fn new(grid_config: &GridConfig) -> Self
     {
-        let grid = create_maze_2(None, 0.1);//create_maze(None, 0.1);
-        let lines = compute_wall_lines(&grid, 55, 30, 20.0, (50.0, 50.0));
+        let grid = create_maze_2(None, 0.1, grid_config);//create_maze(None, 0.1);
+        let lines = compute_wall_lines(&grid, grid_config.grid_width, grid_config.grid_height, grid_config.cell_size, grid_config.offset);
 
         Maze
         {
@@ -33,18 +33,18 @@ impl Maze
         }
     }
 
-    pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration, block_input: bool)
+    pub fn update(&mut self, timer: &mut Instant, time_stop: &Duration, block_input: bool, grid_config: &GridConfig)
     {
         
-        if !block_input { self.handle_input(); }
-        self.update_solver(timer, time_stop);
+        if !block_input { self.handle_input(grid_config); }
+        self.update_solver(timer, time_stop, grid_config);
     }
 
-    pub fn draw(&self)
+    pub fn draw(&self, grid_config: &GridConfig)
     {
         self.draw_maze();
-        self.draw_solver();
-        self.draw_ends();
+        self.draw_solver(grid_config);
+        self.draw_ends(grid_config);
     }
 
     fn draw_maze(&self)
@@ -94,7 +94,7 @@ impl Maze
         }
     }
 
-    fn handle_input(&mut self)
+    fn handle_input(&mut self, grid_config: &GridConfig)
     {
         if is_mouse_button_released(MouseButton::Left) // Start
         {
@@ -137,7 +137,7 @@ impl Maze
         if is_key_released(KeyCode::Space) { self.started = !self.started; }
     }
 
-    fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration)
+    fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration, grid_config: &GridConfig)
     {
         // if timer.elapsed() >= *time_stop && self.started
         // {
@@ -154,7 +154,7 @@ impl Maze
         // }
     }
 
-    fn draw_solver(&self)
+    fn draw_solver(&self, grid_config: &GridConfig)
     {
         let cell_size = CELL_SIZE as f32;
         
@@ -179,7 +179,7 @@ impl Maze
         }
     }
 
-    fn draw_ends(&self)
+    fn draw_ends(&self, grid_config: &GridConfig)
     {
         let cell_size = CELL_SIZE as f32;
 
@@ -192,7 +192,7 @@ impl Maze
         draw_rectangle(end_x, end_y, CELL_SIZE as f32, CELL_SIZE as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
-    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32)
+    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig)
     {
         // self.grid = create_maze(grid_input, threshold);
     }
@@ -476,11 +476,11 @@ impl Cell
     }
 }
 
-fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<Cell>
+fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
 {
-    let grid_width = 55;
-    let grid_height = 30;
-    let grid_size = grid_width*grid_height;
+    let grid_width = grid_config.grid_width;
+    let grid_height = grid_config.grid_height;
+    let grid_size = grid_config.grid_size;
 
     let mut grid = vec![Cell::new(); grid_size];
     let mut visited = vec![false; grid_size];

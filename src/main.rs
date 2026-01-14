@@ -19,7 +19,8 @@ async fn main()
 {
     srand(miniquad::date::now() as u64);
 
-    let mut maze = maze::Maze::new();
+    let mut grid_config = GridConfig::new(screen_width(), screen_height(), 50, 30, 20.0, (50.0, 50.0));
+    let mut maze = maze::Maze::new(&grid_config);
 
     let mut timer = Instant::now();
     let time_stop = Duration::from_millis(10);
@@ -50,8 +51,8 @@ async fn main()
             },
             AppState::Maze =>
             {
-                maze.update(&mut timer, &time_stop, block_input);
-                maze.draw();
+                maze.update(&mut timer, &time_stop, block_input, &grid_config);
+                maze.draw(&grid_config);
             }
         }
 
@@ -83,7 +84,7 @@ async fn main()
                         None
                     };
                     
-                    maze.regenerate_maze(grid, threshold);
+                    maze.regenerate_maze(grid, threshold, &grid_config);
                 },
                 UiCommand::SwitchState(new_state) => state = new_state,
                 UiCommand::SwitchColor(new_color) => color = new_color,
@@ -105,4 +106,33 @@ pub enum AppState
 {
     Maze,
     Draw
+}
+
+
+pub struct GridConfig
+{
+    pub width: f32,
+    pub height: f32,
+    pub grid_width: usize,
+    pub grid_height: usize,
+    pub cell_size: f32,
+    pub grid_size: usize,
+    pub offset: (f32, f32)
+}
+
+impl GridConfig
+{
+    pub fn new(screen_width: f32, screen_height: f32, grid_width: usize, grid_height: usize, cell_size: f32, offset: (f32, f32)) -> Self
+    {
+        Self
+        {
+            width: screen_width,
+            height: screen_height,
+            grid_width,
+            grid_height,
+            cell_size,
+            grid_size: grid_width*grid_height,
+            offset
+        }
+    }
 }
