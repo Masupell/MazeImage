@@ -28,7 +28,7 @@ async fn main()
 {
     srand(miniquad::date::now() as u64);
 
-    let mut grid_config = GridConfig::new(screen_width(), screen_height(), 50, 30, 20.0, (50.0, 50.0));
+    let mut grid_config = GridConfig::new(screen_width(), screen_height(), 10, 10, 40.0, (400.0, 50.0));
     let mut maze = maze::Maze::new(&grid_config);
 
     let mut timer = Instant::now();
@@ -38,7 +38,11 @@ async fn main()
 
     let mut block_input: bool = false;
 
-    let mut canvas = Canvas::new(1280, 720);
+    let max_size = grid_config.width.min(grid_config.height);
+    let cell_size = (max_size / grid_config.grid_width as f32).min(max_size / grid_config.grid_height as f32);
+    let canvas_width = (cell_size * grid_config.grid_width as f32).round() as u16;
+    let canvas_height = (cell_size * grid_config.grid_height as f32).round() as u16;
+    let mut canvas = Canvas::new(canvas_width, canvas_height);
 
     let mut state = AppState::Maze;
 
