@@ -42,9 +42,9 @@ impl Maze
 
     pub fn draw(&self, grid_config: &GridConfig)
     {
-        self.draw_maze();
-        self.draw_solver(grid_config);
+        // self.draw_solver(grid_config);
         self.draw_ends(grid_config);
+        self.draw_maze();
     }
 
     fn draw_maze(&self)
@@ -96,47 +96,37 @@ impl Maze
 
     fn handle_input(&mut self, grid_config: &GridConfig)
     {
-        let cell_size = grid_config.cell_size;
-        if is_mouse_button_released(MouseButton::Left) // Start
+        if is_mouse_button_released(MouseButton::Left) || is_mouse_button_pressed(MouseButton::Left)// Start
         {
-            let pos = mouse_position();
-
-            let x = (pos.0/cell_size) as usize;
-            let y = (pos.1/cell_size) as usize;
-            let i = y*grid_config.grid_width+x;
-            self.start = i;
-            self.solver.redo(self.start, self.end);
+            if let Some(i) = mouse_to_cell(grid_config)
+            {
+                self.start = i;
+                self.solver.redo(self.start, self.end);
+            }
         }
 
-        if is_mouse_button_released(MouseButton::Right) // End
+        if is_mouse_button_released(MouseButton::Right) || is_mouse_button_pressed(MouseButton::Right) // End
         {
-            let pos = mouse_position();
-
-            let x = (pos.0/cell_size) as usize;
-            let y = (pos.1/cell_size) as usize;
-            let i = y*grid_config.grid_width+x;
-            self.end = i;
-            self.solver.redo(self.start, self.end);
+            if let Some(i) = mouse_to_cell(grid_config)
+            {
+                self.end = i;
+                self.solver.redo(self.start, self.end);
+            }
         }
 
-        if is_mouse_button_released(MouseButton::Middle)
+        if is_mouse_button_released(MouseButton::Middle) || is_mouse_button_pressed(MouseButton::Middle)
         {
-            let pos = mouse_position();
-            
-            let x = (pos.0/cell_size) as usize;
-            let y = (pos.1/cell_size) as usize;
-            let i = y*grid_config.grid_width+x;
-
-            // self.grid[i] = !self.grid[i];
+            if let Some(_) = mouse_to_cell(grid_config)
+            {
+                // self.grid[i] = !self.grid[i];
+            }
         }
 
-        if is_key_released(KeyCode::Enter)
-        {
-            self.solver.redo(self.start, self.end);
-        }
+        if is_key_released(KeyCode::Enter) { self.solver.redo(self.start, self.end); }
 
         if is_key_released(KeyCode::Space) { self.started = !self.started; }
     }
+
 
     fn update_solver(&mut self, timer: &mut Instant, time_stop: &Duration, grid_config: &GridConfig)
     {
@@ -186,12 +176,12 @@ impl Maze
         let cell_size = grid_config.cell_size;
         let grid_width = grid_config.grid_width;
 
-        let start_x = (self.start % grid_width) as f32 * cell_size;
-        let start_y = (self.start / grid_width) as f32 * cell_size;
+        let start_x = (self.start % grid_width) as f32 * cell_size + grid_config.offset.0;
+        let start_y = (self.start / grid_width) as f32 * cell_size + grid_config.offset.1;
         draw_rectangle(start_x, start_y, cell_size as f32, cell_size as f32, Color::new(0.8, 0.8, 0.4, 1.0));
 
-        let end_x = (self.end % grid_width) as f32 * cell_size;
-        let end_y = (self.end / grid_width) as f32 * cell_size;
+        let end_x = (self.end % grid_width) as f32 * cell_size + grid_config.offset.0;
+        let end_y = (self.end / grid_width) as f32 * cell_size + grid_config.offset.1;
         draw_rectangle(end_x, end_y, cell_size as f32, cell_size as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
@@ -200,6 +190,32 @@ impl Maze
         // self.grid = create_maze(grid_input, threshold);
     }
 }
+
+
+fn mouse_to_cell(grid_config: &GridConfig) -> Option<usize>
+{
+    let (mx, my) = mouse_position();
+
+    let cell_size = grid_config.cell_size;
+
+    let mx = mx - grid_config.offset.0;
+    let my = my - grid_config.offset.1;
+
+    if mx < 0.0 || my < 0.0 { return None; }
+
+    let cx = (mx / cell_size).floor() as isize;
+    let cy = (my / cell_size).floor() as isize;
+
+    if cx < 0 || cy < 0 { return None; }
+
+    let cx = cx as usize;
+    let cy = cy as usize;
+
+    if cx as usize >= grid_config.grid_width || cy as usize >= grid_config.grid_height { return None; }
+
+    Some(cy * grid_config.grid_width + cx)
+}
+
 
 fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
 {
