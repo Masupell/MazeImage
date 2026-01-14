@@ -34,98 +34,41 @@ pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<usize>, I
     let grid_width = grid_config.grid_width;
     let grid_height = grid_config.grid_height;
 
-    let mut grid: Vec<usize> = Vec::new();//vec![false; grid_config.grid_size];
+    let mut path: Vec<usize> = Vec::new();
 
-    let src = input;
+    let image_width = input.width() as usize;
+    let image_height = input.height() as usize;
 
-    let input_width = src.width() as u32;
-    let input_height = src.height() as u32;
-
-    let input_aspect = input_width as f32 / input_height as f32;
-    let target_aspect = grid_width as f32 / grid_height as f32;
-
-    let (extended_width, extended_height, offset_x, offset_y) = if input_aspect > target_aspect
+    for gy in 0..grid_height
     {
-        let new_height = (input_width as f32 / target_aspect).round() as u32;
-        let pad_y = ((new_height - input_height) / 2) as i32;
-        (input_width, new_height, 0, pad_y)
-    }
-    else if input_aspect < target_aspect
-    {
-        let new_width = (input_height as f32 * target_aspect).round() as u32;
-        let pad_x = ((new_width - input_width) / 2) as i32;
-        (new_width, input_height, pad_x, 0)
-    }
-    else
-    {
-        (input_width, input_height, 0, 0)
-    };
+        let y0 = (gy * image_height) / grid_height;
+        let y1 = ((gy + 1) * image_height) / grid_height;
 
-    let mut extended = Image::gen_image_color(extended_width as u16, extended_height as u16, BLACK);
-
-    for y in 0..input_height 
-    {
-        for x in 0..input_width 
+        for gx in 0..grid_width
         {
-            let tx = x as i32 + offset_x;
-            let ty = y as i32 + offset_y;
-            extended.set_pixel(tx as u32, ty as u32, src.get_pixel(x, y));
-        }
-    }
-    let macroquad_image = extended;
-
-    let image_width = src.width() as usize;
-    let image_height = src.height() as usize;
-
-    let image_aspect = image_width as f32 / image_height as f32;
-    let grid_aspect = grid_width as f32 / grid_height as f32;
-
-    let (fit_width, fit_height, offset_x, offset_y) = if image_aspect > grid_aspect
-    {
-        let height= (grid_width as f32 / image_aspect).round() as usize;
-        (grid_width, height, 0, (grid_height-height)/2)
-    }
-    else 
-    {
-        let width = (grid_height as f32 * image_aspect).round() as usize;
-        (width, grid_height, (grid_width-width)/2, 0)
-    };
-
-    // Based on GRID_SIZE now not on image_size
-    for gy in 0..grid_height 
-    {
-        if gy < offset_y || gy >= offset_y + fit_height { continue; }
-        
-        let y0 = (gy-offset_y) * image_height/fit_height;
-        let y1 = (gy+1-offset_y) * image_height/fit_height;
-
-        for gx in 0..grid_width 
-        {
-            if gx < offset_x || gx >= offset_x + fit_width { continue; }
-            
-            let x0 = (gx-offset_x) * image_width/fit_width;
-            let x1 = (gx+1-offset_x) * image_width/fit_width;
+            let x0 = (gx * image_width) / grid_width;
+            let x1 = ((gx + 1) * image_width) / grid_width;
 
             let mut white = 0;
-            for y in y0..y1 
+            for y in y0..y1
             {
-                for x in x0..x1 
+                for x in x0..x1
                 {
-                    let pixel = src.get_pixel(x as u32, y as u32);
+                    let pixel = input.get_pixel(x as u32, y as u32);
                     if pixel.r == 1.0 { white += 1; }
                 }
             }
 
             let cell_pixel_count = (x1 - x0) * (y1 - y0);
-            if white * 2 >= cell_pixel_count 
+
+            if white * 2 >= cell_pixel_count
             {
-                // grid[gy*grid_width + gx] = true;
-                grid.push(gy*grid_width + gx);
+                path.push(gy * grid_width + gx);
             }
         }
     }
 
-    (grid, macroquad_image)
+    (path, input.clone())
 }
 
 // Simple Edge detection
