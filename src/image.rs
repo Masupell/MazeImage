@@ -1,18 +1,18 @@
 use image::{DynamicImage, GrayImage, ImageBuffer, Luma};
 use macroquad::{color::BLACK, texture::Image};
 
-use crate::constants::{GRID_HEIGHT, GRID_SIZE, GRID_WIDTH};
+use crate::GridConfig;
 
 
-pub fn get_grid_from_path(path: &str) -> (Vec<bool>, Image) 
+pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<bool>, Image) 
 {
     let mut input = match image::open(path) 
     {
         Ok(img) => img,
-        Err(_) => 
+        Err(e) => 
         {
-            println!("Error\n(Could be wrong path/does not exist");
-            return (vec![false; GRID_SIZE], Image::gen_image_color(16, 16, BLACK));
+            println!("Error\n{}", e);
+            return (vec![false; grid_config.grid_size], Image::gen_image_color(16, 16, BLACK));
         }
     };
 
@@ -21,17 +21,20 @@ pub fn get_grid_from_path(path: &str) -> (Vec<bool>, Image)
     let output = sobel(&input, 0.05);
     let macroquad_image = luma_to_macroquad_image(&output);
 
-    get_input_grid(&macroquad_image)
+    get_input_grid(&macroquad_image, grid_config)
 }
 
-pub fn get_grid_from_image(image: Image) -> (Vec<bool>, Image) 
+pub fn get_grid_from_image(image: Image, grid_config: &GridConfig) -> (Vec<bool>, Image) 
 {
-    get_input_grid(&image)
+    get_input_grid(&image, grid_config)
 }
 
-pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
+pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<bool>, Image)
 {
-    let mut grid = vec![false; GRID_SIZE];
+    let grid_width = grid_config.grid_width;
+    let grid_height = grid_config.grid_height;
+
+    let mut grid = vec![false; grid_config.grid_size];
 
     let src = input;
 
@@ -39,7 +42,7 @@ pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
     let input_height = src.height() as u32;
 
     let input_aspect = input_width as f32 / input_height as f32;
-    let target_aspect = GRID_WIDTH as f32 / GRID_HEIGHT as f32;
+    let target_aspect = grid_width as f32 / grid_height as f32;
 
     let (extended_width, extended_height, offset_x, offset_y) = if input_aspect > target_aspect
     {
@@ -75,28 +78,28 @@ pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
     let image_height = src.height() as usize;
 
     let image_aspect = image_width as f32 / image_height as f32;
-    let grid_aspect = GRID_WIDTH as f32 / GRID_HEIGHT as f32;
+    let grid_aspect = grid_width as f32 / grid_height as f32;
 
     let (fit_width, fit_height, offset_x, offset_y) = if image_aspect > grid_aspect
     {
-        let height= (GRID_WIDTH as f32 / image_aspect).round() as usize;
-        (GRID_WIDTH, height, 0, (GRID_HEIGHT-height)/2)
+        let height= (grid_width as f32 / image_aspect).round() as usize;
+        (grid_width, height, 0, (grid_height-height)/2)
     }
     else 
     {
-        let width = (GRID_HEIGHT as f32 * image_aspect).round() as usize;
-        (width, GRID_HEIGHT, (GRID_WIDTH-width)/2, 0)
+        let width = (grid_height as f32 * image_aspect).round() as usize;
+        (width, grid_height, (grid_width-width)/2, 0)
     };
 
     // Based on GRID_SIZE now not on image_size
-    for gy in 0..GRID_HEIGHT 
+    for gy in 0..grid_height 
     {
         if gy < offset_y || gy >= offset_y + fit_height { continue; }
         
         let y0 = (gy-offset_y) * image_height/fit_height;
         let y1 = (gy+1-offset_y) * image_height/fit_height;
 
-        for gx in 0..GRID_WIDTH 
+        for gx in 0..grid_width 
         {
             if gx < offset_x || gx >= offset_x + fit_width { continue; }
             
@@ -116,7 +119,7 @@ pub fn get_input_grid(input: &Image) -> (Vec<bool>, Image)
             let cell_pixel_count = (x1 - x0) * (y1 - y0);
             if white * 2 >= cell_pixel_count 
             {
-                grid[gy*GRID_WIDTH + gx] = true;
+                grid[gy*grid_width + gx] = true;
             }
         }
     }

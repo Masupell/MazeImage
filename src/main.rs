@@ -5,14 +5,23 @@ use macroquad::rand::srand;
 
 pub mod image;
 pub mod maze;
-pub mod constants;
 pub mod solver;
 pub mod ui;
 pub mod canvas;
 
 use crate::canvas::Canvas;
-use crate::constants::window_config;
 use crate::ui::{InputImage, UI, UiCommand};
+
+pub fn window_config() -> Conf 
+{
+    Conf
+    {
+        window_title: "Maze Image".to_owned(),
+        window_width: 1280,
+        window_height: 720,
+        ..Default::default()
+    }
+}
 
 #[macroquad::main(window_config)]
 async fn main() 
@@ -46,8 +55,8 @@ async fn main()
         {
             AppState::Draw =>
             {
-                canvas.update(block_input, brush_size, smoothing, color);
-                canvas.draw();
+                canvas.update(block_input, brush_size, smoothing, color, &grid_config);
+                canvas.draw(&grid_config);
             },
             AppState::Maze =>
             {
@@ -67,7 +76,7 @@ async fn main()
                 {
                     let grid = if use_image == InputImage::Image
                     {
-                        let (grid, image) = crate::image::get_grid_from_path(ui.get_path());
+                        let (grid, image) = crate::image::get_grid_from_path(ui.get_path(), &grid_config);
 
                         canvas.set_image(image);
 
@@ -75,7 +84,7 @@ async fn main()
                     }
                     else if use_image == InputImage::Drawing
                     {
-                        let (grid, _) = crate::image::get_grid_from_image(canvas.get_image());
+                        let (grid, _) = crate::image::get_grid_from_image(canvas.get_image(), &grid_config);
 
                         Some(grid)
                     }

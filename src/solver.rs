@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
-use crate::constants::*;
+
+use crate::GridConfig;
 
 pub struct Solver // Quite inefficient
 {
@@ -16,12 +17,12 @@ pub struct Solver // Quite inefficient
 
 impl Solver
 {
-    pub fn new(start: usize, end: usize) -> Self
+    pub fn new(start: usize, end: usize, grid_config: &GridConfig) -> Self
     {
         let mut queue = VecDeque::new();
         queue.push_back(start);
 
-        let mut visited = vec![false; GRID_SIZE];
+        let mut visited = vec![false; grid_config.grid_size];
         visited[start] = true;
 
         Solver
@@ -30,7 +31,7 @@ impl Solver
             end,
             queue,
             visited,
-            path: vec![None; GRID_SIZE],
+            path: vec![None; grid_config.grid_size],
             path_pos: end,
             final_path: Vec::new(),
             found: false,
@@ -38,7 +39,7 @@ impl Solver
         }
     }
 
-    pub fn step(&mut self, grid: &Vec<bool>)
+    pub fn step(&mut self, grid: &Vec<bool>, grid_config: &GridConfig)
     {
         // if self.found { return; }
 
@@ -46,7 +47,7 @@ impl Solver
         if cell_option.is_none() { self.found = true; self.finished = true; println!("Error?"); return; }
         let cell = cell_option.unwrap();
 
-        let neighbours = solver_sides(cell, GRID_WIDTH, GRID_HEIGHT, grid);//sides(cell, GRID_WIDTH, GRID_SIZE);
+        let neighbours = solver_sides(cell, grid_config.grid_width, grid_config.grid_height, grid);//sides(cell, GRID_WIDTH, GRID_SIZE);
         let viable: Vec<usize> = neighbours.into_iter().filter(|pos| !self.visited[*pos]).collect(); // All not yet visited cells
         for i in viable
         {

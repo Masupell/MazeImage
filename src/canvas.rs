@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::{constants::{GRID_HEIGHT, GRID_WIDTH}, ui::FillMode};
+use crate::{GridConfig, ui::FillMode};
 
 pub struct Canvas
 {
@@ -53,17 +53,17 @@ impl Canvas
         self.canvas.clone()
     }
 
-    pub fn draw(&self)
+    pub fn draw(&self, grid_config: &GridConfig)
     {
         draw_texture_ex(&self.texture, -self.offset.x * self.zoom, -self.offset.y * self.zoom, WHITE, DrawTextureParams { dest_size: Some(self.get_size()*self.zoom), ..Default::default() });
 
         if self.show_grid
         {
-            self.draw_grid();
+            self.draw_grid(grid_config);
         }
     }
 
-    pub fn update(&mut self, block_input: bool, brush_size: f32, smoothing: f32, color: Color) 
+    pub fn update(&mut self, block_input: bool, brush_size: f32, smoothing: f32, color: Color, grid_config: &GridConfig) 
     {
         if block_input { return; }
 
@@ -110,7 +110,7 @@ impl Canvas
             if let Some(last) = self.last_pos
             {
                 if self.normal_fill { self.fill_normal(mouse, color); }
-                else if self.grid_fill { self.fill_grid_cell(mouse, color); }
+                else if self.grid_fill { self.fill_grid_cell(mouse, color, grid_config); }
                 else { self.draw_line(last, self.smooth_pos, brush_size, color); }
 
                 self.texture.update(&self.canvas);
@@ -163,23 +163,23 @@ impl Canvas
         }
     }
 
-    fn draw_grid(&self)
+    fn draw_grid(&self, grid_config: &GridConfig)
     {
         let (width, height) = (self.canvas.width() as f32, self.canvas.height() as f32);//screen_size();
         
-        let cell_width = width / GRID_WIDTH as f32;
-        let cell_height = height / GRID_HEIGHT as f32;
+        let cell_width = width / grid_config.grid_width as f32;
+        let cell_height = height / grid_config.grid_height as f32;
 
         let color = Color::new(1.0, 1.0, 1.0, 0.25);
 
-        for x in 0..=GRID_WIDTH
+        for x in 0..=grid_config.grid_width
         {
             let x_canvas = x as f32 * cell_width;
             let x_screen = (x_canvas - self.offset.x) * self.zoom;
             draw_line(x_screen, -self.offset.y * self.zoom, x_screen, (height as f32 - self.offset.y) * self.zoom, 1.0, color); // macroquads draw line
         }
 
-        for y in 0..=GRID_HEIGHT
+        for y in 0..=grid_config.grid_height
         {
             let y_canvas = y as f32 * cell_height;
             let y_screen = (y_canvas - self.offset.y) * self.zoom;
@@ -198,13 +198,13 @@ impl Canvas
     }
 
 
-    pub fn fill_grid_cell(&mut self, mouse: Vec2, color: Color)
+    pub fn fill_grid_cell(&mut self, mouse: Vec2, color: Color, grid_config: &GridConfig)
     {
-        let cell_width = self.canvas.width() as f32 / GRID_WIDTH as f32;
-        let cell_height = self.canvas.height() as f32 / GRID_HEIGHT as f32;
+        let cell_width = self.canvas.width() as f32 / grid_config.grid_width as f32;
+        let cell_height = self.canvas.height() as f32 / grid_config.grid_height as f32;
 
-        let gx = (mouse.x / cell_width).floor().clamp(0.0, (GRID_WIDTH-1) as f32) as usize;
-        let gy = (mouse.y / cell_height).floor().clamp(0.0, (GRID_HEIGHT-1) as f32) as usize;
+        let gx = (mouse.x / cell_width).floor().clamp(0.0, (grid_config.grid_width-1) as f32) as usize;
+        let gy = (mouse.y / cell_height).floor().clamp(0.0, (grid_config.grid_height-1) as f32) as usize;
 
         let start_x = (gx as f32 * cell_width).floor() as u32;
         let start_y = (gy as f32 * cell_height).floor() as u32;
