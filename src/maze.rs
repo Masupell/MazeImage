@@ -1,4 +1,3 @@
-use core::prelude::v1;
 use std::{collections::HashSet, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
@@ -173,7 +172,7 @@ impl Maze
         draw_rectangle(end_x, end_y, cell_size as f32, cell_size as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
-    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<usize>>, threshold: f32, grid_config: &GridConfig)
+    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig)
     {
         self.grid = create_maze(grid_input, threshold, grid_config);
         self.lines = compute_wall_lines(&self.grid, grid_config.grid_width, grid_config.grid_height, grid_config.cell_size, grid_config.offset);
@@ -233,14 +232,14 @@ impl Cell
     }
 }
 
-fn create_maze(grid_input: Option<Vec<usize>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
+fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
 {
     let grid_width = grid_config.grid_width;
     let grid_height = grid_config.grid_height;
     let grid_size = grid_config.grid_size;
 
     let has_path = grid_input.is_some();
-    let mut path = Vec::new();
+    let mut path = vec![false; grid_size];
     if has_path { path = grid_input.unwrap(); }
 
     let mut grid = vec![Cell::new(); grid_size];
@@ -286,44 +285,20 @@ fn create_maze(grid_input: Option<Vec<usize>>, threshold: f32, grid_config: &Gri
         }
     }
 
-    println!("path len: {}", path.len());
+    // Path carving
+    for idx in 0..path.len()
+    {
+        if !path[idx] { continue; }
 
-use std::collections::HashSet;
-let unique: HashSet<_> = path.iter().copied().collect();
-println!("unique len: {}", unique.len());
-
-    // // Path carving
-    // for pair in path.windows(2)
-    // {
-    //     let first = pair[0];
-    //     let second = pair[1];
-
-    //     grid[first].up = true;
-    //     grid[first].down= true;
-    //     grid[first].left = true;
-    //     grid[first].right = true;
-
-    //     grid[second].up = true;
-    //     grid[second].down= true;
-    //     grid[second].left = true;
-    //     grid[second].right = true;
-
-    //     // if let Some(dir) = direction_to_neighbour(first, second, grid_width, grid_size)
-    //     // {
-    //     //     grid[first].set_wall(&dir, false);
-    //     //     grid[second].set_wall(&opposite(&dir), false);
-    //     // }
-    // }
-    for &idx in &path {
-    grid[idx].up = true;
-    grid[idx].down = true;
-    grid[idx].left = true;
-    grid[idx].right = true;
-
-    println!("Idx: {}", idx);
-}
-
-
+        for &neighbor in get_path_neighbours(idx, &path, grid_width, grid_size).iter()
+        {
+            if let Some(dir) = direction_to_neighbour(idx, neighbor, grid_width, grid_size)
+            {
+                grid[idx].set_wall(&dir, false);
+                grid[neighbor].set_wall(&opposite(&dir), false);
+            }
+        }
+    }
 
     grid
 }
@@ -352,6 +327,23 @@ fn direction_to_neighbour(first: usize, second: usize, width: usize, max: usize)
         }
     }
     None
+}
+
+fn get_path_neighbours(pos: usize, path_grid: &Vec<bool>, width: usize, max: usize) -> Vec<usize>
+{
+    let mut neighbours = Vec::new();
+
+    for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+    {
+        if let Some(neighbour) = neighbour(pos, &dir, width, max)
+        {
+            if path_grid[neighbour]
+            {
+                neighbours.push(neighbour);
+            }
+        }
+    }
+    neighbours
 }
 
 fn neighbour(pos: usize, dir: &Dir, width: usize, max: usize) -> Option<usize>
@@ -390,196 +382,111 @@ struct Line
     y1: f32
 }
 
-// fn compute_wall_lines(grid: &Vec<Cell>, grid_width: usize, grid_height: usize, cell_size: f32, offset: (f32, f32)) -> Vec<Line>
-// {
-//     let mut lines = Vec::new();
-
-//     for y_idx in 0..grid_height
-//     {
-//         let mut x_start: Option<f32> = None;
-
-//         for x_idx in 0..grid_width
-//         {
-//             let i = y_idx * grid_width + x_idx;
-//             let cell = &grid[i];
-
-//             // First top wall
-//             if y_idx == 0 && x_idx == 0
-//             {
-//                 lines.push(Line
-//                 {
-//                     x0: offset.0,
-//                     y0: offset.1,
-//                     x1: offset.0 + grid_width as f32 * cell_size,
-//                     y1: offset.1
-//                 });
-//             }
-
-//             if cell.up || y_idx == 0
-//             {
-//                 if x_start.is_none()
-//                 {
-//                     x_start = Some(offset.0 + x_idx as f32 * cell_size);
-//                 }
-//             }
-//             else if let Some(x0) = x_start
-//             {
-//                 let x1 = offset.0 + x_idx as f32 * cell_size;
-//                 let y = offset.1 + y_idx as f32 * cell_size;
-//                 lines.push(Line { x0: x0.round(), y0: y.round(), x1: x1.round(), y1: y.round() });
-//                 x_start = None;
-//             }
-
-//             if y_idx == grid_height - 1 && cell.down
-//             {
-//                 let x = offset.0 + x_idx as f32 * cell_size;
-//                 let y = offset.1 + (y_idx + 1) as f32 * cell_size;
-//                 lines.push(Line { x0: x.round(), y0: y.round(), x1: (x + cell_size).round(), y1: y.round() });
-//             }
-//         }
-
-//         if let Some(x0) = x_start
-//         {
-//             let x1 = offset.0 + grid_width as f32 * cell_size;
-//             let y = offset.1 + y_idx as f32 * cell_size;
-//             lines.push(Line { x0: x0, y0: y, x1: x1, y1: y });
-//         }
-//     }
-
-//     for x_idx in 0..grid_width
-//     {
-//         let mut y_start: Option<f32> = None;
-
-//         for y_idx in 0..grid_height
-//         {
-//             let i = y_idx * grid_width + x_idx;
-//             let cell = &grid[i];
-
-//             // First Left wall
-//             if x_idx == 0 && y_idx == 0
-//             {
-//                 lines.push(Line
-//                 {
-//                     x0: offset.0,
-//                     y0: offset.1,
-//                     x1: offset.0,
-//                     y1: offset.1 + grid_height as f32 * cell_size
-//                 });
-//             }
-
-//             if cell.left || x_idx == 0
-//             {
-//                 if y_start.is_none()
-//                 {
-//                     y_start = Some(offset.1 + y_idx as f32 * cell_size);
-//                 }
-//             }
-//             else if let Some(y0) = y_start
-//             {
-//                 let y1 = offset.1 + y_idx as f32 * cell_size;
-//                 let x = offset.0 + x_idx as f32 * cell_size;
-//                 lines.push(Line { x0: x.round(), y0: y0.round(), x1: x.round(), y1: y1.round() });
-//                 y_start = None;
-//             }
-
-//             if x_idx == grid_width - 1 && cell.right
-//             {
-//                 let x = offset.0 + (x_idx + 1) as f32 * cell_size;
-//                 let y = offset.1 + y_idx as f32 * cell_size;
-//                 lines.push(Line { x0: x.round(), y0: y.round(), x1: x.round(), y1: (y + cell_size).round() });
-//             }
-//         }
-
-//         if let Some(y0) = y_start
-//         {
-//             let y1 = offset.1 + grid_height as f32 * cell_size;
-//             let x = offset.0 + x_idx as f32 * cell_size;
-//             lines.push(Line { x0: x.round(), y0: y0.round(), x1: x.round(), y1: y1.round() });
-//         }
-//     }
-
-//     lines
-// }
-
-fn compute_wall_lines(
-    grid: &Vec<Cell>,
-    grid_width: usize,
-    grid_height: usize,
-    cell_size: f32,
-    offset: (f32, f32),
-) -> Vec<Line>
+fn compute_wall_lines(grid: &Vec<Cell>, grid_width: usize, grid_height: usize, cell_size: f32, offset: (f32, f32)) -> Vec<Line>
 {
     let mut lines = Vec::new();
 
-    let ox = offset.0;
-    let oy = offset.1;
-
-    let total_w = grid_width as f32 * cell_size;
-    let total_h = grid_height as f32 * cell_size;
-
-    // ─────────────────────────────
-    // Outer borders (draw once)
-    // ─────────────────────────────
-    lines.push(Line { x0: ox, y0: oy, x1: ox + total_w, y1: oy });           // top
-    lines.push(Line { x0: ox, y0: oy + total_h, x1: ox + total_w, y1: oy + total_h }); // bottom
-    lines.push(Line { x0: ox, y0: oy, x1: ox, y1: oy + total_h });           // left
-    lines.push(Line { x0: ox + total_w, y0: oy, x1: ox + total_w, y1: oy + total_h }); // right
-
-    // ─────────────────────────────
-    // Horizontal walls (cell.up)
-    // ─────────────────────────────
-    for y in 0..grid_height {
+    for y_idx in 0..grid_height
+    {
         let mut x_start: Option<f32> = None;
 
-        for x in 0..grid_width {
-            let i = y * grid_width + x;
+        for x_idx in 0..grid_width
+        {
+            let i = y_idx * grid_width + x_idx;
             let cell = &grid[i];
 
-            if cell.up {
-                if x_start.is_none() {
-                    x_start = Some(ox + x as f32 * cell_size);
+            // First top wall
+            if y_idx == 0 && x_idx == 0
+            {
+                lines.push(Line
+                {
+                    x0: offset.0,
+                    y0: offset.1,
+                    x1: offset.0 + grid_width as f32 * cell_size,
+                    y1: offset.1
+                });
+            }
+
+            if cell.up || y_idx == 0
+            {
+                if x_start.is_none()
+                {
+                    x_start = Some(offset.0 + x_idx as f32 * cell_size);
                 }
-            } else if let Some(x0) = x_start {
-                let x1 = ox + x as f32 * cell_size;
-                let y0 = oy + y as f32 * cell_size;
-                lines.push(Line { x0: x0.round(), y0: y0.round(), x1: x1.round(), y1: y0.round() });
+            }
+            else if let Some(x0) = x_start
+            {
+                let x1 = offset.0 + x_idx as f32 * cell_size;
+                let y = offset.1 + y_idx as f32 * cell_size;
+                lines.push(Line { x0: x0.round(), y0: y.round(), x1: x1.round(), y1: y.round() });
                 x_start = None;
+            }
+
+            if y_idx == grid_height - 1 && cell.down
+            {
+                let x = offset.0 + x_idx as f32 * cell_size;
+                let y = offset.1 + (y_idx + 1) as f32 * cell_size;
+                lines.push(Line { x0: x.round(), y0: y.round(), x1: (x + cell_size).round(), y1: y.round() });
             }
         }
 
-        if let Some(x0) = x_start {
-            let x1 = ox + total_w;
-            let y0 = oy + y as f32 * cell_size;
-            lines.push(Line { x0: x0.round(), y0: y0.round(), x1: x1.round(), y1: y0.round() });
+        if let Some(x0) = x_start
+        {
+            let x1 = offset.0 + grid_width as f32 * cell_size;
+            let y = offset.1 + y_idx as f32 * cell_size;
+            lines.push(Line { x0: x0, y0: y, x1: x1, y1: y });
         }
     }
 
-    // ─────────────────────────────
-    // Vertical walls (cell.left)
-    // ─────────────────────────────
-    for x in 0..grid_width {
+    for x_idx in 0..grid_width
+    {
         let mut y_start: Option<f32> = None;
 
-        for y in 0..grid_height {
-            let i = y * grid_width + x;
+        for y_idx in 0..grid_height
+        {
+            let i = y_idx * grid_width + x_idx;
             let cell = &grid[i];
 
-            if cell.left {
-                if y_start.is_none() {
-                    y_start = Some(oy + y as f32 * cell_size);
+            // First Left wall
+            if x_idx == 0 && y_idx == 0
+            {
+                lines.push(Line
+                {
+                    x0: offset.0,
+                    y0: offset.1,
+                    x1: offset.0,
+                    y1: offset.1 + grid_height as f32 * cell_size
+                });
+            }
+
+            if cell.left || x_idx == 0
+            {
+                if y_start.is_none()
+                {
+                    y_start = Some(offset.1 + y_idx as f32 * cell_size);
                 }
-            } else if let Some(y0) = y_start {
-                let y1 = oy + y as f32 * cell_size;
-                let x0 = ox + x as f32 * cell_size;
-                lines.push(Line { x0: x0.round(), y0: y0.round(), x1: x0.round(), y1: y1.round() });
+            }
+            else if let Some(y0) = y_start
+            {
+                let y1 = offset.1 + y_idx as f32 * cell_size;
+                let x = offset.0 + x_idx as f32 * cell_size;
+                lines.push(Line { x0: x.round(), y0: y0.round(), x1: x.round(), y1: y1.round() });
                 y_start = None;
+            }
+
+            if x_idx == grid_width - 1 && cell.right
+            {
+                let x = offset.0 + (x_idx + 1) as f32 * cell_size;
+                let y = offset.1 + y_idx as f32 * cell_size;
+                lines.push(Line { x0: x.round(), y0: y.round(), x1: x.round(), y1: (y + cell_size).round() });
             }
         }
 
-        if let Some(y0) = y_start {
-            let y1 = oy + total_h;
-            let x0 = ox + x as f32 * cell_size;
-            lines.push(Line { x0: x0.round(), y0: y0.round(), x1: x0.round(), y1: y1.round() });
+        if let Some(y0) = y_start
+        {
+            let y1 = offset.1 + grid_height as f32 * cell_size;
+            let x = offset.0 + x_idx as f32 * cell_size;
+            lines.push(Line { x0: x.round(), y0: y0.round(), x1: x.round(), y1: y1.round() });
         }
     }
 

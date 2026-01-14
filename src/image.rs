@@ -4,7 +4,7 @@ use macroquad::{color::BLACK, texture::Image};
 use crate::GridConfig;
 
 
-pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<usize>, Image) 
+pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<bool>, Image) 
 {
     let mut input = match image::open(path) 
     {
@@ -24,17 +24,17 @@ pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<usize>, 
     get_input_grid(&macroquad_image, grid_config)
 }
 
-pub fn get_grid_from_image(image: Image, grid_config: &GridConfig) -> (Vec<usize>, Image) 
+pub fn get_grid_from_image(image: Image, grid_config: &GridConfig) -> (Vec<bool>, Image) 
 {
     get_input_grid(&image, grid_config)
 }
 
-pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<usize>, Image)
+pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<bool>, Image)
 {
     let grid_width = grid_config.grid_width;
     let grid_height = grid_config.grid_height;
 
-    let mut path: Vec<usize> = Vec::new();
+    let mut grid: Vec<bool> = vec![false; grid_config.grid_size];
 
     let image_width = input.width() as usize;
     let image_height = input.height() as usize;
@@ -63,12 +63,13 @@ pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<usize>, I
 
             if white * 2 >= cell_pixel_count
             {
-                path.push(gy * grid_width + gx);
+                // grid.push(gy * grid_width + gx);
+                grid[gy * grid_width + gx] = true;
             }
         }
     }
 
-    (path, input.clone())
+    (grid, input.clone())
 }
 
 // Simple Edge detection
