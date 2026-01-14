@@ -1,3 +1,4 @@
+use core::prelude::v1;
 use std::{collections::HashSet, time::{Duration, Instant}};
 
 use macroquad::{prelude::*, rand::gen_range};
@@ -19,7 +20,7 @@ impl Maze
 
     pub fn new(grid_config: &GridConfig) -> Self
     {
-        let grid = create_maze_2(None, 0.1, grid_config);//create_maze(None, 0.1);
+        let grid = create_maze(None, 0.1, grid_config);//create_maze(None, 0.1);
         let lines = compute_wall_lines(&grid, grid_config.grid_width, grid_config.grid_height, grid_config.cell_size, grid_config.offset);
 
         Maze
@@ -146,9 +147,10 @@ impl Maze
         draw_rectangle(end_x, end_y, cell_size as f32, cell_size as f32, Color::new(0.8, 0.4, 0.4, 1.0));
     }
 
-    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig)
+    pub fn regenerate_maze(&mut self, grid_input: Option<Vec<usize>>, threshold: f32, grid_config: &GridConfig)
     {
-        self.grid = create_maze_2(grid_input, threshold, grid_config);
+        self.grid = create_maze(grid_input, threshold, grid_config);
+        self.lines = compute_wall_lines(&self.grid, grid_config.grid_width, grid_config.grid_height, grid_config.cell_size, grid_config.offset);
     }
 }
 
@@ -176,257 +178,6 @@ fn mouse_to_cell(grid_config: &GridConfig) -> Option<usize>
 
     Some(cy * grid_config.grid_width + cx)
 }
-
-
-fn sides(pos: usize, width: usize, max: usize) -> Vec<usize>
-{
-    let mut neighbours = Vec::new();
-
-    let x = pos % width;
-    let y = pos / width;
-    let max_y = max / width;
-
-    if x > 0 && (y%2==1) { neighbours.push(pos - 1); }
-    if x < width - 1 && (y%2==1) { neighbours.push(pos + 1); }
-    if y > 0 && (x%2==1){ neighbours.push(pos - width); }
-    if y < max_y-1 && (x%2==1) { neighbours.push(pos + width); }
-
-    neighbours
-}
-
-// fn random_start() -> usize
-// {
-//     let x = gen_range(0, GRID_WIDTH/2) * 2+1;
-//     let y = gen_range(0, GRID_HEIGHT/2) * 2+1;
-
-//     y * GRID_WIDTH + x
-// }
-
-// // Might keep this as hashset later, as it would be faster for the maze creation algorithm
-// fn get_all_walls(protected: &Vec<bool>) -> Vec<usize>
-// {
-//     let mut wall_set: HashSet<usize> = HashSet::new();
-
-//     for idx in 0..GRID_SIZE
-//     {
-//         if !protected[idx] { continue; }
-        
-//         for ring1 in all_sides(idx, GRID_WIDTH, GRID_SIZE) //buffer around it
-//         {
-//             for ring2 in sides(ring1, GRID_WIDTH, GRID_SIZE) //actual walls
-//             {
-//                 if !protected[ring2]
-//                 {
-//                     wall_set.insert(ring2);
-//                 }
-//             }
-//         }
-//     }
-
-//     wall_set.into_iter().collect()
-// }
-
-// fn create_maze(grid_input: Option<Vec<bool>>, threshold: f32) -> Vec<bool>
-// {
-//     let mut protected = vec![false; GRID_SIZE];
-    
-//     let mut grid = if grid_input.is_some() { grid_input.unwrap() } else { vec![false; GRID_SIZE] };
-
-//     let mut regions: Vec<usize> = vec![0; GRID_SIZE]; // Region 0 is no region
-//     let mut next_region_id: usize = 1;
-    
-//     for (idx, &input) in grid.iter().enumerate()
-//     {
-//         protected[idx] = input;
-//     }
-//     protected = expand_protection_zone(&protected);
-
-//     let mut walls =  get_all_walls(&protected);
-
-//     if walls.is_empty()
-//     {
-//         let start = loop
-//         {
-//             let s = random_start();
-//             if !protected[s]
-//             {
-//                 break s;
-//             }
-//         };
-//         walls = sides(start, GRID_WIDTH, GRID_SIZE);
-//         grid[start] = true;
-//     }
-//     else 
-//     {
-//         let temp_copy = walls.clone();
-//         for (i, &cell) in temp_copy.iter().enumerate()
-//         {
-//             walls.remove(i);
-//             grid[cell] = true;
-//             let neighbours = sides(cell, GRID_WIDTH, GRID_SIZE);
-//             for &side in neighbours.iter()
-//             {
-//                 if !protected[side]
-//                 {
-//                     walls.push(side);
-//                 }
-//             }
-//         }
-//     }
-
-//     while !walls.is_empty()
-//     {        
-//         let idx = gen_range(0, walls.len());
-//         let cell = walls[idx];
-
-//         let x = cell % GRID_WIDTH;
-//         let y = cell / GRID_WIDTH;
-
-//         let cell_one_idx;
-//         let cell_two_idx;
-//         let cell_one;
-//         let cell_two;
-
-//         if y % 2 == 1 && x % 2 == 0 // y is odd, x is even, means cells are to the left and right
-//         {
-//             if x == 0 || x+1 >= GRID_WIDTH { walls.remove(idx); continue; }
-//             cell_one_idx = y * GRID_WIDTH + x-1;
-//             cell_two_idx = y * GRID_WIDTH + x+1;
-//             cell_one = grid[cell_one_idx];
-//             cell_two = grid[cell_two_idx];
-//         }
-//         else if y % 2 == 0 && x % 2 == 1 // y is even, x is odd, means cells are up and down
-//         {
-//             if y == 0 || y+1 >= GRID_HEIGHT { walls.remove(idx); continue; }
-//             cell_one_idx = (y-1) * GRID_WIDTH + x;
-//             cell_two_idx = (y+1) * GRID_WIDTH + x;
-//             cell_one = grid[cell_one_idx];
-//             cell_two = grid[cell_two_idx];
-//         }
-//         else { walls.remove(idx); continue; }
-
-//         if cell_one != cell_two // If only one is true (visited)
-//         {
-//             let (visited, unvisited) = if cell_one { (cell_one_idx, cell_two_idx) } else { (cell_two_idx, cell_one_idx) };
-
-//             //Checks if it is connected to another region, if not: Adds cell-idx to new region
-//             if protected[unvisited]
-//             {
-//                 let connected_cells = flood_fill_connected(visited, &grid, &protected, GRID_WIDTH, GRID_SIZE);
-
-//                 // let has_region = connected_cells.iter().any(|&c| regions[c] != 0);
-
-//                 let mut region_id = 0;
-//                 let mut connects_to_region = false;
-
-//                 for &c in &connected_cells
-//                 {
-//                     let r = regions[c];
-//                     if r != 0
-//                     {
-//                         if region_id == 0
-//                         {
-//                             region_id = r;
-//                         }
-//                         else if region_id != r
-//                         {
-//                             connects_to_region = true;
-//                             break;
-//                         }
-//                     }
-//                 }
-
-//                 if connects_to_region//has_region
-//                 {
-//                     walls.remove(idx);
-//                     continue;
-//                 }
-
-//                 for &c in connected_cells.iter()
-//                 {
-//                     regions[c] = next_region_id;
-//                 }
-//                 next_region_id += 1;
-//             }
-//             grid[cell] = true;
-//             grid[unvisited] = true;
-
-//             let new_neighbours = sides(unvisited, GRID_WIDTH, GRID_SIZE);
-//             for n in new_neighbours
-//             {
-//                 if !walls.contains(&n)
-//                 {
-//                     walls.push(n);
-//                 }
-//             }
-//         }
-//         walls.remove(idx);
-//     }
-
-//     grid
-// }
-
-// // Flood Search, like the solver does currently
-// fn flood_fill_connected(start_cell: usize, grid: &Vec<bool>, protected: &Vec<bool>, grid_width: usize, grid_size: usize) -> Vec<usize>
-// {
-//     let mut connected = Vec::new();
-//     let mut visited = vec![false; grid_size];
-//     let mut stack = vec![start_cell];
-    
-//     while let Some(cell) = stack.pop()
-//     {
-//         if visited[cell] || !grid[cell] || protected[cell]
-//         {
-//             continue;
-//         }
-
-//         visited[cell] = true;
-//         connected.push(cell);
-
-//         let neighbours = all_sides(cell, grid_width, grid_size);
-//         for &neighbour in neighbours.iter()
-//         {
-//             if !visited[neighbour] && grid[neighbour] &&!protected[neighbour]
-//             {
-//                 stack.push(neighbour);
-//             }
-//         }
-//     }
-
-//     connected
-// }
-
-// fn expand_protection_zone(protected: &Vec<bool>) -> Vec<bool>
-// {
-//     let mut expanded = protected.clone();
-//     for idx in 0..GRID_SIZE
-//     {
-//         if !protected[idx] { continue; }
-
-//         for n in all_sides(idx, GRID_WIDTH, GRID_SIZE)
-//         {
-//             expanded[n] = true;
-//         }
-//     }
-//     expanded
-// }
-
-// fn all_sides(pos: usize, width: usize, max: usize) -> Vec<usize>
-// {
-//     let mut neighbours = Vec::new();
-
-//     let x = pos % width;
-//     let y = pos / width;
-//     let max_y = max / width;
-
-//     if x > 0 { neighbours.push(pos - 1); }
-//     if x < width - 1 { neighbours.push(pos + 1); }
-//     if y > 0 { neighbours.push(pos - width); }
-//     if y < max_y-1 { neighbours.push(pos + width); }
-
-//     neighbours
-// }
-
 
 #[derive(Clone)]
 pub struct Cell
@@ -456,11 +207,15 @@ impl Cell
     }
 }
 
-fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
+fn create_maze(grid_input: Option<Vec<usize>>, threshold: f32, grid_config: &GridConfig) -> Vec<Cell>
 {
     let grid_width = grid_config.grid_width;
     let grid_height = grid_config.grid_height;
     let grid_size = grid_config.grid_size;
+
+    let has_path = grid_input.is_some();
+    let mut path = Vec::new();
+    if has_path { path = grid_input.unwrap(); }
 
     let mut grid = vec![Cell::new(); grid_size];
     let mut visited = vec![false; grid_size];
@@ -468,7 +223,7 @@ fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &Gr
     let mut frontier_set: HashSet<(usize, Dir)> = HashSet::new();
     let mut frontier_vec: Vec<(usize, Dir)> = Vec::new();
 
-    let start = random_start_2(grid_width, grid_height);
+    let start = random_start(grid_width, grid_height);
     visited[start] = true;
     for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
     {
@@ -491,8 +246,6 @@ fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &Gr
 
         if visited[cell] != visited[neighbour]
         {
-            // Input path checking here, later
-
             grid[cell].set_wall(&dir, false);
             grid[neighbour].set_wall(&opposite(&dir), false);
             visited[neighbour] = true;
@@ -507,18 +260,47 @@ fn create_maze_2(grid_input: Option<Vec<bool>>, threshold: f32, grid_config: &Gr
         }
     }
 
+    // Path carving
+    for pair in path.windows(2)
+    {
+        let first = pair[0];
+        let second = pair[1];
+
+        if let Some(dir) = direction_to_neighbour(first, second, grid_width, grid_size)
+        {
+            grid[first].set_wall(&dir, false);
+            grid[second].set_wall(&opposite(&dir), false);
+        }
+    }
+
+
     grid
 }
 
 #[derive(Eq, Hash, PartialEq, Copy, Clone)]
 pub enum Dir { Up, Down, Left, Right}
 
-fn random_start_2(width: usize, height: usize) -> usize
+fn random_start(width: usize, height: usize) -> usize
 {
     let x = gen_range(0, width);
     let y = gen_range(0, height);
 
     y * width + x
+}
+
+fn direction_to_neighbour(first: usize, second: usize, width: usize, max: usize) -> Option<Dir>
+{
+    for dir in [Dir::Up, Dir::Down, Dir::Left, Dir::Right]
+    {
+        if let Some(neighbour) = neighbour(first, &dir, width, max)
+        {
+            if neighbour == second
+            {
+                return Some(dir)
+            }
+        }
+    }
+    None
 }
 
 fn neighbour(pos: usize, dir: &Dir, width: usize, max: usize) -> Option<usize>

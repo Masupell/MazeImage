@@ -4,7 +4,7 @@ use macroquad::{color::BLACK, texture::Image};
 use crate::GridConfig;
 
 
-pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<bool>, Image) 
+pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<usize>, Image) 
 {
     let mut input = match image::open(path) 
     {
@@ -12,7 +12,7 @@ pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<bool>, I
         Err(e) => 
         {
             println!("Error\n{}", e);
-            return (vec![false; grid_config.grid_size], Image::gen_image_color(16, 16, BLACK));
+            return (Vec::new(), Image::gen_image_color(16, 16, BLACK));
         }
     };
 
@@ -24,17 +24,17 @@ pub fn get_grid_from_path(path: &str, grid_config: &GridConfig) -> (Vec<bool>, I
     get_input_grid(&macroquad_image, grid_config)
 }
 
-pub fn get_grid_from_image(image: Image, grid_config: &GridConfig) -> (Vec<bool>, Image) 
+pub fn get_grid_from_image(image: Image, grid_config: &GridConfig) -> (Vec<usize>, Image) 
 {
     get_input_grid(&image, grid_config)
 }
 
-pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<bool>, Image)
+pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<usize>, Image)
 {
     let grid_width = grid_config.grid_width;
     let grid_height = grid_config.grid_height;
 
-    let mut grid = vec![false; grid_config.grid_size];
+    let mut grid: Vec<usize> = Vec::new();//vec![false; grid_config.grid_size];
 
     let src = input;
 
@@ -119,7 +119,8 @@ pub fn get_input_grid(input: &Image, grid_config: &GridConfig) -> (Vec<bool>, Im
             let cell_pixel_count = (x1 - x0) * (y1 - y0);
             if white * 2 >= cell_pixel_count 
             {
-                grid[gy*grid_width + gx] = true;
+                // grid[gy*grid_width + gx] = true;
+                grid.push(gy*grid_width + gx);
             }
         }
     }
